@@ -7,8 +7,8 @@ from datetime import date
 from decimal import Decimal
 
 from pylons import request
-from pylons.controllers.util import redirect
 from routes import url_for
+from webob.exc import HTTPFound
 from webhelpers.html import escape, literal, url_escape
 from webhelpers.html.tags import *
 from webhelpers.pylonslib.secure_form import *
@@ -17,7 +17,7 @@ from webhelpers.pylonslib import Flash as _Flash
 
 
 def redirect_to(*args, **kwargs):
-    redirect(url_for(*args, **kwargs))
+    raise HTTPFound(location=url_for(*args, **kwargs))
 
 
 def currency(name, value, *args, **kwargs):
