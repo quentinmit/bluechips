@@ -96,43 +96,49 @@ class SpendController(BaseController):
         # old one
         involved_users = set()
 
-        if id is None:
-            e = model.Expenditure()
-            meta.Session.add(e)
-            op = 'created'
+        with meta.Session.no_autoflush:
+            if id is None:
+                e = model.Expenditure()
+                meta.Session.add(e)
+                op = 'created'
 
-            old_expenditure = None
-        else:
-            e = meta.Session.query(model.Expenditure).get(id)
-            if e is None:
-                abort(404)
+                old_expenditure = None
+            else:
+                e = meta.Session.query(model.Expenditure).get(id)
+                if e is None:
+                    abort(404)
 
-            old_expenditure = render('/emails/expenditure.txt',
-                                     extra_vars={'expenditure': e,
-                                                 'op': 'previously',
-                                                 'old_expenditure': None})
+                old_expenditure = render('/emails/expenditure.txt',
+                                         extra_vars={'expenditure': e,
+                                                     'op': 'previously',
+                                                     'old_expenditure': None})
 
-            # If a user gets removed from a transaction, they should
-            # still get an email
-            involved_users.update(sp.user for sp in e.splits if sp.share != 0)
-            involved_users.add(e.spender)
-            op = 'updated'
-        
-        # Set the fields that were submitted
-        shares = self.form_result.pop('shares')
-        update_sar(e, self.form_result)
+                # If a user gets removed from a transaction, they should
+                # still get an email
+                involved_users.update(sp.user for sp in e.splits if sp.share != 0)
+                involved_users.add(e.spender)
+                op = 'updated'
 
-        users = dict(meta.Session.query(model.User.id, model.User).all())
-        split_dict = {}
-        for share_params in shares:
-            user = users[share_params['user_id']]
-            split_dict[user] = Decimal(str(share_params['amount']))
-        e.split(split_dict)
-        
-        meta.Session.commit()
+            # Set the fields that were submitted
+            shares = self.form_result.pop('shares')
+            update_sar(e, self.form_result)
+            # Newer SQLAlchemy doesn't automatically set e.spender
+            # based on e.spender_id
+            if not e.spender:
+                e.spender = meta.Session.query(model.User).get(e.spender_id)
+
+            users = dict(meta.Session.query(model.User.id, model.User).all())
+            split_dict = {}
+            for share_params in shares:
+                user = users[share_params['user_id']]
+                split_dict[user] = Decimal(str(share_params['amount']))
+            e.split(split_dict)
+
+            meta.Session.commit()
        
         show = ("Expenditure of %s paid for by %s %s." %
                 (e.amount, e.spender, op))
+        log.info(show)
         h.flash(show)
 
         # Send email notification to involved users if they have an email set.
