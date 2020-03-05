@@ -40,6 +40,7 @@ class TransferController(BaseController):
             c.title = 'Add a New Transfer'
             c.transfer = model.Transfer()
             c.transfer.debtor_id = request.environ['user'].id
+            c.transfer.debtor = meta.Session.query(model.User).get(c.transfer.debtor_id)
             c.transfer.date = date.today()
         else:
             c.title = 'Edit a Transfer'
@@ -52,21 +53,27 @@ class TransferController(BaseController):
     @validate(schema=TransferSchema(), form='edit')
     @authenticate_form
     def update(self, id=None):
-        if id is None:
-            t = model.Transfer()
-            meta.Session.add(t)
-            op = 'created'
-        else:
-            t = meta.Session.query(model.Transfer).get(id)
-            if t is None:
-                abort(404)
-            op = 'updated'
-        
-        update_sar(t, self.form_result)
-        meta.Session.commit()
+        with meta.Session.no_autoflush:
+            if id is None:
+                t = model.Transfer()
+                meta.Session.add(t)
+                op = 'created'
+            else:
+                t = meta.Session.query(model.Transfer).get(id)
+                if t is None:
+                    abort(404)
+                op = 'updated'
+
+            update_sar(t, self.form_result)
+            if not t.debtor:
+                t.debtor = meta.Session.query(model.User).get(t.debtor_id)
+            if not t.creditor:
+                t.creditor = meta.Session.query(model.User).get(t.creditor_id)
+            meta.Session.commit()
        
         show = ('Transfer of %s from %s to %s %s.' %
                 (t.amount, t.debtor, t.creditor, op))
+        log.info(show)
         h.flash(show)
 
         # Send email notification to involved users if they have an email set.
