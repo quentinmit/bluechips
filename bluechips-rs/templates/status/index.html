@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% import "_list_expenditures.html" as le %}
+{% import "_list.html" as list %}
 {% block content %}
 <div class="block">
   <h2>Settling Transfers</h2>
@@ -68,10 +68,10 @@
 
   <h3>Expenditures</h3>
 
-  {% call le::list_expenditures(expenditures) %}
+  {% call list::list_expenditures(expenditures) %}
 
   <h3>Transfers</h3>
 
-  ${self.listTransfers(c.transfers)}
+  {% call list::list_transfers(transfers) %}
 </div>
 {% endblock %}

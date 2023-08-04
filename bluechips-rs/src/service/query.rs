@@ -14,6 +14,17 @@ pub struct ExpenditureDisplay {
     pub share_amount: Currency,
 }
 
+#[derive(FromQueryResult)]
+pub struct TransferDisplay {
+    pub id: i32,
+    pub amount: Currency,
+    pub involved: bool,
+    pub description: Option<String>,
+    pub date: Option<Date>,
+    pub debtor_name: String,
+    pub creditor_name: String,
+}
+
 pub struct Query;
 
 impl Query {
@@ -57,6 +68,53 @@ impl Query {
             user_id,
             Expenditure::find()
                 .order_by_desc(expenditure::Column::Date)
+        )
+            .all(db)
+            .await
+    }
+
+    fn annotate_transfers(user_id: i32, select: Select<transfer::Entity>) -> Selector<SelectModel<TransferDisplay>> {
+        #[derive(DeriveIden)]
+        struct Debtor;
+        #[derive(DeriveIden)]
+        struct Creditor;
+        select
+            .select_only()
+            .columns([
+                transfer::Column::Id,
+                transfer::Column::Amount,
+                transfer::Column::Description,
+                transfer::Column::Date,
+            ])
+            .join_as(JoinType::InnerJoin, transfer::Relation::Debtor.def(), Debtor)
+            .join_as(JoinType::InnerJoin, transfer::Relation::Creditor.def(), Creditor)
+            .column_as(Expr::col((Debtor, user::Column::Name)), "debtor_name")
+            .column_as(Expr::col((Creditor, user::Column::Name)), "creditor_name")
+            .column_as(transfer::Column::DebtorId.eq(user_id).or(transfer::Column::CreditorId.eq(user_id)), "involved")
+            .into_model()
+    }
+
+    pub async fn find_my_recent_transfers(db: &DbConn, user_id: i32) -> Result<Vec<TransferDisplay>, DbErr> {
+        Self::annotate_transfers(
+            user_id,
+            Transfer::find()
+                .filter(
+                    Cond::any()
+                        .add(transfer::Column::DebtorId.eq(user_id))
+                        .add(transfer::Column::CreditorId.eq(user_id))
+                )
+                .order_by_desc(transfer::Column::Date)
+                .limit(10)
+        )
+            .all(db)
+            .await
+    }
+
+    pub async fn find_all_transfers(db: &DbConn, user_id: i32) -> Result<Vec<TransferDisplay>, DbErr> {
+        Self::annotate_transfers(
+            user_id,
+            Transfer::find()
+                .order_by_desc(transfer::Column::Date)
         )
             .all(db)
             .await

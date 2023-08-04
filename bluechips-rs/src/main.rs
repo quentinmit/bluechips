@@ -11,7 +11,7 @@ mod entities;
 use entities::{prelude::*, *};
 
 mod service;
-use service::{Query, ExpenditureDisplay};
+use service::{Query, ExpenditureDisplay, TransferDisplay};
 
 use sea_orm::{prelude::*, *};
 
@@ -23,6 +23,7 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
     expenditures: Vec<ExpenditureDisplay>,
+    transfers: Vec<TransferDisplay>,
 }
 
 #[get("/")]
@@ -30,7 +31,8 @@ async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'
     let db = db as &DatabaseConnection;
     let user_id = 1;
     let expenditures = Query::find_my_recent_expenditures(db, user_id).await.unwrap();
-    StatusIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures}
+    let transfers = Query::find_my_recent_transfers(db, user_id).await.unwrap();
+    StatusIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures, transfers}
 }
 
 #[get("/spend")]
@@ -51,6 +53,15 @@ fn transfer_index() -> Option<()> {
     None
 }
 
+#[get("/transfer/<id>/edit")]
+fn transfer_edit(id: i32) -> Option<()> {
+    None
+}
+#[get("/transfer/<id>/delete")]
+fn transfer_delete(id: i32) -> Option<()> {
+    None
+}
+
 #[derive(Template)]
 #[template(path = "history/index.html")]
 struct HistoryIndexTemplate<'a> { // the name of the struct can be anything
@@ -58,6 +69,7 @@ struct HistoryIndexTemplate<'a> { // the name of the struct can be anything
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
     expenditures: Vec<ExpenditureDisplay>,
+    transfers: Vec<TransferDisplay>,
 }
 
 #[get("/history")]
@@ -65,7 +77,8 @@ async fn history_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMe
     let db = db as &DatabaseConnection;
     let user_id = 1;
     let expenditures = Query::find_all_expenditures(db, user_id).await.unwrap();
-    HistoryIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures}
+    let transfers = Query::find_all_transfers(db, user_id).await.unwrap();
+    HistoryIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures, transfers}
 }
 
 #[get("/user")]

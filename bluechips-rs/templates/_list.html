@@ -22,3 +22,28 @@
     {% endfor %}
   </table>
 {% endmacro %}
+
+{% macro list_transfers(ts) %}
+  <table class="list">
+    <tr>
+      <th class="date">Date</th>
+      <th class="user">From</th>
+      <th class="user">To</th>
+      <th class="description">Description</th>
+      <th class="amount">Amount</th>
+      <th class="editlink"></th>
+      <th class="deletelink"></th>
+    </tr>
+    {% for t in ts %}
+      <tr class="{% if t.involved %}user-involved{% else %}user-not-involved{% endif %}">
+        <td class="date">{% if let Some(date) = t.date %}{{ date }}{% endif %}</td>
+        <td class="user">{{ t.debtor_name }}</td>
+        <td class="user">{{ t.creditor_name }}</td>
+        <td class="description">{% if let Some(description) = t.description %}{{ description }}{% endif %}</td>
+        <td class="amount">{{ t.amount }}</td>
+        <td class="editlink"><a href="{{ uri!(transfer_edit(id = t.id)) }}">Edit</a></td>
+        <td class="deletelink"><a href="{{ uri!(transfer_delete(id = t.id)) }}">Delete</a></td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endmacro %}
