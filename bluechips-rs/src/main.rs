@@ -3,7 +3,11 @@ use rocket::fs::FileServer;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
 use askama::Template; // bring trait in scope
-//use askama_rocket;
+use sea_orm::Database;
+
+mod entities;
+
+use entities::{prelude::*, *};
 
 #[derive(Template)] // this will generate the code...
 #[template(path = "base.html")] // using the template in this path, relative
@@ -40,8 +44,10 @@ fn user() -> Option<()> {
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
+    let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
     rocket::build()
+        .manage(db)
         .mount("/", routes![status])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))

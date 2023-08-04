@@ -7,3 +7,4 @@ pub mod split;
 pub mod subitem;
 pub mod transfer;
 pub mod user;
+pub mod currency;
