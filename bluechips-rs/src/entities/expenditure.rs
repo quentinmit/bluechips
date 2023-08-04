@@ -24,12 +24,21 @@ pub enum Relation {
         to = "super::user::Column::Id"
     )]
     Spender,
+    #[sea_orm(has_many = "super::split::Entity")]
+    Split,
 }
 
 // `Related` trait has to be implemented by hand
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Spender.def()
+    }
+}
+
+// `Related` trait has to be implemented by hand
+impl Related<super::split::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Split.def()
     }
 }
 
