@@ -9,12 +9,22 @@ pub struct Model {
     pub id: i32,
     pub username: String,
     pub name: Option<String>,
-    pub resident: Option<i8>,
+    pub resident: bool,
     pub email: Option<String>,
     pub password: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::expenditure::Entity")]
+    Expenditure,
+}
+
+// `Related` trait has to be implemented by hand
+impl Related<super::expenditure::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Expenditure.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
