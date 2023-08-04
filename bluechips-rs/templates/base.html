@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>BlueChips{% if let Some(title) = title %} :: {{ title }}{% endif %}</title>
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/flick/jquery-ui.css" />
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
+    <script src="/js/admin.js"></script>
+  </head>
+  <body>
+    {% if mobile_client %}
+      <div id="mobile">
+        <a href="${h.url_for(request.url, use_non_mobile='no')}">Use mobile interface</a>
+      </div>
+    {% endif %}
+    <div id="nav" class="block">
+      <table>
+        <tr>
+          <td>
+            <h1 class="title">
+              {{ title.unwrap_or("BlueChips") }}
+            </h1>
+          </td>
+          <td>
+            <a href="{{ uri!(status()) }}">
+              <img src="/icons/status.png" alt="">
+              <span>Dashboard</span>
+            </a>
+          </td>
+          <td>
+            <a href="{{ uri!(spend()) }}">
+              <img src="/icons/spend.png" alt="">
+              <span>Expense</span>
+            </a>
+          </td>
+          <td>
+            <a href="{{ uri!(transfer()) }}">
+              <img src="/icons/transfer.png" alt="">
+              <span>Transfer</span>
+            </a>
+          </td>
+          <td>
+            <a href="{{ uri!(history()) }}">
+              <img src="/icons/history.png" alt="">
+              <span>History</span>
+            </a>
+          </td>
+          <td>
+            <a href="{{ uri!(user()) }}">
+              <img src="/icons/user.png" alt="">
+              <span>User</span>
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+    {% if let Some(flash) = flash %}
+      <div class="flash">{{ flash.message() }}</div>
+    {% endif %}
+    <div id="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </body>
+</html>
+
+{% macro formatUser(user) %}
+  {% if user == user %}
+    <strong>Me</strong>
+  {% else %}
+    {{ user.name }}
+  {% endif %}
+{% endmacro %}
