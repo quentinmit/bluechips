@@ -68,7 +68,7 @@ fn spend_delete(id: i32) -> Option<()> {
 }
 
 #[get("/transfer")]
-fn transfer() -> Option<()> {
+fn transfer_index() -> Option<()> {
     None
 }
 
@@ -87,7 +87,7 @@ async fn rocket() -> _ {
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
     rocket::build()
         .manage(db)
-        .mount("/", routes![status])
+        .mount("/", routes![status, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))
