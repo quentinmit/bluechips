@@ -1,20 +1,30 @@
 use core::fmt;
 
+use derive_more::{Add, Sub, Mul, Div};
 use sea_orm::entity::prelude::*;
-use rusty_money::{Money, Round, FormattableCurrency, iso};
+use rusty_money::{Money, MoneyError, Round, FormattableCurrency, iso};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Add, Sub, Mul, Div)]
 pub struct Currency(Money<'static, iso::Currency>);
 
 impl From<Currency> for Value {
     fn from(source: Currency) -> Self {
-        (source.0.round(source.0.currency().exponent(), Round::HalfEven).amount().mantissa() as i32).into()
+        let rounded = source.0.round(source.0.currency().exponent(), Round::HalfEven);
+        assert_eq!(rounded.amount().scale(), source.0.currency().exponent());
+        (rounded.amount().mantissa() as i32).into()
     }
 }
 
 impl From<i32> for Currency {
     fn from(source: i32) -> Self {
         Currency(Money::from_minor(source as i64, iso::USD))
+    }
+}
+
+impl TryFrom<&str> for Currency {
+    type Error = MoneyError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Money::from_str(value, iso::USD).map(|m| Self(m))
     }
 }
 
@@ -45,5 +55,29 @@ impl sea_orm::sea_query::ValueType for Currency {
 
     fn column_type() -> sea_orm::sea_query::ColumnType {
         sea_orm::sea_query::ColumnType::Integer
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn from_integer() {
+        let c = Currency::from(123456);
+        assert_eq!("$1,234.56", format!("{}", c));
+    }
+
+    #[test]
+    fn from_str() {
+        let c = Currency::try_from("1234.56").unwrap();
+        assert_eq!("$1,234.56", format!("{}", c));
+    }
+
+    #[test]
+    fn add() {
+        let c1 = Currency::from(123);
+        let c2 = Currency::from(456);
+        let c = c1 + c2;
+        assert_eq!("$5.79", format!("{}", c));
     }
 }
