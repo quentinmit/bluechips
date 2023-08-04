@@ -1,3 +1,5 @@
+use core::fmt;
+
 use sea_orm::entity::prelude::*;
 use rusty_money::{Money, Round, FormattableCurrency, iso};
 
@@ -13,6 +15,12 @@ impl From<Currency> for Value {
 impl From<i32> for Currency {
     fn from(source: i32) -> Self {
         Currency(Money::from_minor(source as i64, iso::USD))
+    }
+}
+
+impl fmt::Display for Currency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

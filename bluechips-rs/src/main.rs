@@ -2,25 +2,35 @@
 use rocket::fs::FileServer;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
+use rocket::State;
 use askama::Template; // bring trait in scope
 use sea_orm::Database;
 
 mod entities;
-
 use entities::{prelude::*, *};
+use sea_orm::*;
 
 #[derive(Template)] // this will generate the code...
-#[template(path = "base.html")] // using the template in this path, relative
+#[template(path = "status/index.html")] // using the template in this path, relative
 // to the `templates` dir in the crate root
 struct StatusTemplate<'a> { // the name of the struct can be anything
     title: Option<&'a str>,
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
+    expenditures: Vec<expenditure::Model>,
 }
 
 #[get("/")]
-fn status(flash: Option<FlashMessage<'_>>) -> StatusTemplate<'_> {
-    StatusTemplate{title: None, flash: flash, mobile_client: false}
+async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> StatusTemplate<'a> {
+    let db = db as &DatabaseConnection;
+    let expenditures = Expenditure::find()
+        // TODO: spender == user or any (split where user == user and share != 0)
+        //.filter(expenditure::Column::SpenderId.eq(1))
+        .order_by_desc(expenditure::Column::Date)
+        .limit(10)
+        .all(db)
+        .await.unwrap();
+    StatusTemplate{title: None, flash: flash, mobile_client: false, expenditures}
 }
 
 #[get("/spend")]
