@@ -1,0 +1,24 @@
+{% macro list_expenditures(es) %}
+  <table class="list">
+    <tr>
+      <th class="date">Date</th>
+      <th class="user">Spender</th>
+      <th class="description">Description</th>
+      <th class="amount">Amount</th>
+      <th class="share">My Share</th>
+      <th class="editlink"></th>
+      <th class="deletelink"></th>
+    </tr>
+    {% for e in es %}
+      <tr class="{% if e.involved %}user-involved{% else %}user-not-involved{% endif %}">
+        <td class="date">{% if let Some(date) = e.date %}{{date}}{% endif %}</td>
+        <td class="user">{% if e.mine %}<strong>Me</strong>{% else %}{{ e.spender_name }}{% endif %}</td>
+        <td class="description">{% if let Some(description) = e.description %}{{description}}{% endif %}</td>
+        <td class="amount">{{ e.amount }}</td>
+        <td class="share">{{ e.share_amount }}</td>
+        <td class="editlink"><a href="{{ uri!(spend_edit(id = e.id)) }}">Edit</a></td>
+        <td class="deletelink"><a href="{{ uri!(spend_delete(id = e.id)) }}">Delete</a></td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endmacro %}

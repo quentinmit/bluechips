@@ -9,49 +9,28 @@ use sea_orm::sea_query::IntoCondition;
 
 mod entities;
 use entities::{prelude::*, *};
+
+mod service;
+use service::{Query, ExpenditureDisplay};
+
 use sea_orm::{prelude::*, *};
 
 #[derive(Template)] // this will generate the code...
 #[template(path = "status/index.html")] // using the template in this path, relative
 // to the `templates` dir in the crate root
-struct StatusTemplate<'a> { // the name of the struct can be anything
+struct StatusIndexTemplate<'a> { // the name of the struct can be anything
     title: Option<&'a str>,
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
     expenditures: Vec<ExpenditureDisplay>,
 }
 
-#[derive(FromQueryResult)]
-struct ExpenditureDisplay {
-    id: i32,
-    amount: Currency,
-    mine: bool,
-    description: Option<String>,
-    date: Option<Date>,
-    spender_name: String,
-    share_amount: Currency,
-}
-
 #[get("/")]
-async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> StatusTemplate<'a> {
+async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> StatusIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
     let user_id = 1;
-    let expenditures = Expenditure::find()
-        // TODO: spender == user or any (split where user == user and share != 0)
-        //.filter(expenditure::Column::SpenderId.eq(1))
-        .order_by_desc(expenditure::Column::Date)
-        .limit(10)
-        .select_only()
-        .columns([expenditure::Column::Id, expenditure::Column::Amount, expenditure::Column::Description, expenditure::Column::Date])
-        .join(JoinType::InnerJoin, expenditure::Relation::Spender.def())
-        .column_as(user::Column::Id.eq(user_id), "mine")
-        .column_as(user::Column::Name, "spender_name")
-        .join(JoinType::LeftJoin, expenditure::Relation::Split.def().on_condition(move |_, right| {Expr::col((right, split::Column::UserId)).eq(user_id).into_condition()}))
-        .column_as(split::Column::Share, "share_amount")
-        .into_model::<ExpenditureDisplay>()
-        .all(db)
-        .await.unwrap();
-    StatusTemplate{title: None, flash: flash, mobile_client: false, expenditures}
+    let expenditures = Query::find_my_recent_expenditures(db, user_id).await.unwrap();
+    StatusIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures}
 }
 
 #[get("/spend")]
@@ -72,9 +51,21 @@ fn transfer_index() -> Option<()> {
     None
 }
 
+#[derive(Template)]
+#[template(path = "history/index.html")]
+struct HistoryIndexTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+    expenditures: Vec<ExpenditureDisplay>,
+}
+
 #[get("/history")]
-fn history_index() -> Option<()> {
-    None
+async fn history_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> HistoryIndexTemplate<'a> {
+    let db = db as &DatabaseConnection;
+    let user_id = 1;
+    let expenditures = Query::find_all_expenditures(db, user_id).await.unwrap();
+    HistoryIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures}
 }
 
 #[get("/user")]
