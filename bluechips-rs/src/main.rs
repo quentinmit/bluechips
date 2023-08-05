@@ -1,5 +1,7 @@
 #[macro_use] extern crate rocket;
+use rocket::form::Form;
 use rocket::fs::FileServer;
+use rocket::http::Status;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
 use rocket::State;
@@ -8,10 +10,12 @@ use sea_orm::Database;
 use sea_orm::sea_query::IntoCondition;
 
 mod entities;
-use entities::{prelude::*, *};
 
 mod service;
 use service::{Query, ExpenditureDisplay, TransferDisplay};
+
+mod auth;
+use auth::SessionManager;
 
 use sea_orm::{prelude::*, *};
 
@@ -27,12 +31,11 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
 }
 
 #[get("/")]
-async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> StatusIndexTemplate<'a> {
+async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> StatusIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
-    let user_id = 1;
-    let expenditures = Query::find_my_recent_expenditures(db, user_id).await.unwrap();
-    let transfers = Query::find_my_recent_transfers(db, user_id).await.unwrap();
-    StatusIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures, transfers}
+    let expenditures = Query::find_my_recent_expenditures(db, user.id).await.unwrap();
+    let transfers = Query::find_my_recent_transfers(db, user.id).await.unwrap();
+    StatusIndexTemplate{title: None, flash, mobile_client: false, expenditures, transfers}
 }
 
 #[get("/spend")]
@@ -62,6 +65,33 @@ fn transfer_delete(id: i32) -> Option<()> {
     None
 }
 
+#[derive(Template)] // this will generate the code...
+#[template(path = "auth/login.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+struct AuthLoginTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+}
+
+#[get("/login")]
+fn auth_login<'a>(flash: Option<FlashMessage<'a>>) -> AuthLoginTemplate<'a> {
+    AuthLoginTemplate{title: Some("Login"), flash, mobile_client: false}
+}
+
+#[post("/login", data="<form>")]
+async fn auth_login_post<'a>(
+    db: &State<DatabaseConnection>,
+    form: Form<auth::Login>,
+    auth: auth::Auth<'_>
+) -> Result<Redirect, Flash<Redirect>> {
+    // TODO: XSRF protection
+    let db = db as &DatabaseConnection;
+    auth.login(&form, db).await
+        .map_err(|e| Flash::error(unauthorized(), format!("{:?}", e)))?;
+    Ok(Redirect::to(uri!(status())))
+}
+
 #[derive(Template)]
 #[template(path = "history/index.html")]
 struct HistoryIndexTemplate<'a> { // the name of the struct can be anything
@@ -73,11 +103,10 @@ struct HistoryIndexTemplate<'a> { // the name of the struct can be anything
 }
 
 #[get("/history")]
-async fn history_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>) -> HistoryIndexTemplate<'a> {
+async fn history_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> HistoryIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
-    let user_id = 1;
-    let expenditures = Query::find_all_expenditures(db, user_id).await.unwrap();
-    let transfers = Query::find_all_transfers(db, user_id).await.unwrap();
+    let expenditures = Query::find_all_expenditures(db, user.id).await.unwrap();
+    let transfers = Query::find_all_transfers(db, user.id).await.unwrap();
     HistoryIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures, transfers}
 }
 
@@ -86,12 +115,20 @@ fn user_index() -> Option<()> {
     None
 }
 
+#[catch(401)]
+fn unauthorized() -> Redirect {
+    Redirect::to(uri!(auth_login()))
+}
+
 #[launch]
 async fn rocket() -> _ {
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
+    let session_manager: Box<dyn SessionManager> = Box::new(chashmap::CHashMap::new());
     rocket::build()
         .manage(db)
-        .mount("/", routes![status, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index])
+        .manage(session_manager)
+        .register("/", catchers![unauthorized])
+        .mount("/", routes![status, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))

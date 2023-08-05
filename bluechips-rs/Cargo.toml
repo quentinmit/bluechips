@@ -6,16 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = "0.5.1"
 askama = { version = "0.12.0", features = ["with-rocket"] }
 askama_rocket = "0.12.0"
+chashmap = "2.2.2"
 derive_more = "0.99.17"
-rocket = "=0.5.0-rc.3"
+log = "0.4.19"
+password-auth = "0.3.0"
+rand = "0.8.5"
+rocket = { version = "=0.5.0-rc.3", features = ["secrets"] }
 rocket_dyn_templates = { version = "0.1.0-rc.3", features = ["tera"] }
 rusty-money = "0.4.1"
 sea-orm = { version = "0.12.1", features = ["sqlx-mysql", "sqlx-sqlite", "runtime-tokio-native-tls"] }
-
-[profile.dev.package.askama_derive]
-opt-level = 3
+serde = "1.0.181"
+serde_json = "1.0.104"
+thiserror = "1.0.44"
 
 [patch.crates-io]
 # Not on crates.io for some reason?
