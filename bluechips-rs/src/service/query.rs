@@ -1,6 +1,6 @@
 use crate::entities::{prelude::*, *};
 use sea_orm::{prelude::*, *};
-use sea_orm::sea_query::{Cond, IntoCondition};
+use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition};
 
 #[derive(FromQueryResult)]
 pub struct ExpenditureDisplay {
@@ -10,7 +10,7 @@ pub struct ExpenditureDisplay {
     pub involved: bool,
     pub description: Option<String>,
     pub date: Option<Date>,
-    pub spender_name: String,
+    pub spender_name: Option<String>,
     pub share_amount: Currency,
 }
 
@@ -21,8 +21,8 @@ pub struct TransferDisplay {
     pub involved: bool,
     pub description: Option<String>,
     pub date: Option<Date>,
-    pub debtor_name: String,
-    pub creditor_name: String,
+    pub debtor_name: Option<String>,
+    pub creditor_name: Option<String>,
 }
 
 pub struct Query;
@@ -38,8 +38,13 @@ impl Query {
                 expenditure::Column::Date,
             ])
             .join(JoinType::InnerJoin, expenditure::Relation::Spender.def())
+            .column_as::<SimpleExpr, _>(
+                Expr::case(
+                    user::Column::Id.eq(user_id),
+                    None::<String>,
+                ).finally(Expr::col(user::Column::Name)).into(),
+                "spender_name")
             .column_as(user::Column::Id.eq(user_id), "mine")
-            .column_as(user::Column::Name, "spender_name")
             .join(JoinType::LeftJoin, expenditure::Relation::Split.def().on_condition(move |_, right| {Expr::col((right, split::Column::UserId)).eq(user_id).into_condition()}))
             .column_as(split::Column::Share.if_null(0), "share_amount")
             .column_as(expenditure::Column::SpenderId.eq(user_id).or(split::Column::Share.is_not_null().and(split::Column::Share.gt(0))), "involved")
@@ -88,8 +93,18 @@ impl Query {
             ])
             .join_as(JoinType::InnerJoin, transfer::Relation::Debtor.def(), Debtor)
             .join_as(JoinType::InnerJoin, transfer::Relation::Creditor.def(), Creditor)
-            .column_as(Expr::col((Debtor, user::Column::Name)), "debtor_name")
-            .column_as(Expr::col((Creditor, user::Column::Name)), "creditor_name")
+            .column_as::<SimpleExpr, _>(
+                Expr::case(
+                    Expr::col((Debtor, user::Column::Id)).eq(user_id),
+                    None::<String>,
+                ).finally(Expr::col((Debtor, user::Column::Name))).into(),
+                "debtor_name")
+            .column_as::<SimpleExpr, _>(
+                Expr::case(
+                    Expr::col((Creditor, user::Column::Id)).eq(user_id),
+                    None::<String>,
+                ).finally(Expr::col((Creditor, user::Column::Name))).into(),
+                "creditor_name")
             .column_as(transfer::Column::DebtorId.eq(user_id).or(transfer::Column::CreditorId.eq(user_id)), "involved")
             .into_model()
     }
