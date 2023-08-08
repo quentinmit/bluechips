@@ -4,8 +4,40 @@ use derive_more::{Add, Sub, Mul, Div};
 use sea_orm::entity::prelude::*;
 use rusty_money::{Money, MoneyError, Round, FormattableCurrency, iso};
 
-#[derive(Clone, Debug, PartialEq, Eq, Add, Sub, Mul, Div)]
+#[derive(Clone, Debug, PartialEq, Eq, Add, Sub, Mul, Div, PartialOrd, Ord)]
 pub struct Currency(Money<'static, iso::Currency>);
+
+impl Currency {
+    pub fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
+    pub fn is_positive(&self) -> bool {
+        self.0.is_positive()
+    }
+    pub fn is_negative(&self) -> bool {
+        self.0.is_negative()
+    }
+    pub fn abs(&self) -> Self {
+        if self.is_negative() {
+            -self.clone()
+        } else {
+            self.clone()
+        }
+    }
+}
+
+impl core::ops::Neg for Currency {
+    type Output = Currency;
+    fn neg(self) -> Self::Output {
+        self * -1
+    }
+}
+
+impl std::iter::Sum for Currency {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(0.into(), |a, b| a + b)
+    }
+}
 
 impl From<Currency> for Value {
     fn from(source: Currency) -> Self {

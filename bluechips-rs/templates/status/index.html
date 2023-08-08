@@ -4,38 +4,58 @@
 <div class="block">
   <h2>Settling Transfers</h2>
 
-  % if len(c.settle) == 0:
-    <p>No need! The books are balanced!</p>
-  % else:
-    <p>To balance the books, the following transfers need to be made:</p>
+  {% match settle %}
+    {% when Ok with (settle) %}
+      {% if settle.len() == 0 %}
+        <p>No need! The books are balanced!</p>
+      {% else %}
+        <p>To balance the books, the following transfers need to be made:</p>
 
-    <table id="balance">
-      <tr>
-        <th>From</th>
-        <th>To</th>
-        <th>Amount</th>
-      </tr>
-      % for transfer in c.settle:
-        <tr>
-          <td>${transfer[0].name}</td>
-          <td>${transfer[1].name}</td>
-          <td class="amount">${transfer[2]}</td>
-        </tr>
-      % endfor
-      % if c.net != 0:
-        <tr>
-          <th colspan="2">
-            % if c.net > 0:
-              The group owes you:
-            % elif c.net < 0:
-              You owe the group:
-            % endif
-          </th>
-          <th class="amount">${abs(c.net)}</th>
-        </tr>
-      % endif
-    </table>
-  % endif
+        <table id="balance">
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
+          </tr>
+          {% for transfer in settle %}
+            <tr>
+              <td>{{transfer.0}}</td>
+              <td>{{transfer.1}}</td>
+              <td class="amount">{{transfer.2}}</td>
+            </tr>
+          {% endfor %}
+          {% if let Some(net) = net %}
+            <tr>
+              <th colspan="2">
+                {% if net.is_positive() %}
+                  The group owes you:
+                {% else %}
+                  You owe the group:
+                {% endif %}
+              </th>
+              <th class="amount">{{net.abs()}}</th>
+            </tr>
+          {% endif %}
+        </table>
+      {% endif %}
+    {% when Err with (e) %}
+      {% match e %}
+        {% when SettleError::CollectiveDebt with (owes_list) %}
+          <p>People still owe money:</p>
+          <ul>
+            {% for (id, amount) in owes_list %}
+              <li>{{ id }} owes {{ amount }}</li>
+            {% endfor %}
+          </ul>
+        {% when SettleError::CollectiveCredit with (owed_list) %}
+          <p>People are still owed money:</p>
+          <ul>
+            {% for (id, amount) in owed_list %}
+              <li>{{ id }} owes {{ amount }}</li>
+            {% endfor %}
+          </ul>
+        {% endmatch %}
+    {% endmatch %}
 </div>
 
 <div class="block">

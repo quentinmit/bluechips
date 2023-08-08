@@ -21,12 +21,24 @@ pub enum Relation {
         to = "super::expenditure::Column::Id"
     )]
     Expenditure,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UserId",
+        to = "super::user::Column::Id"
+    )]
+    User,
 }
 
 // `Related` trait has to be implemented by hand
 impl Related<super::expenditure::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Expenditure.def()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
     }
 }
 

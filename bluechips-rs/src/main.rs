@@ -1,4 +1,5 @@
 #[macro_use] extern crate rocket;
+use entities::prelude::Currency;
 use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::Status;
@@ -13,7 +14,7 @@ use sea_orm::sea_query::IntoCondition;
 mod entities;
 
 mod service;
-use service::{Query, ExpenditureDisplay, TransferDisplay};
+use service::{Query, ExpenditureDisplay, TransferDisplay, SettleError};
 
 mod auth;
 use auth::SessionManager;
@@ -27,6 +28,8 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
     title: Option<&'a str>,
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
+    settle: Result<Vec<(i32, i32, Currency)>, SettleError>,
+    net: Option<Currency>,
     expenditures: Vec<ExpenditureDisplay>,
     transfers: Vec<TransferDisplay>,
 }
@@ -34,9 +37,19 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
 #[get("/")]
 async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> StatusIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
+    let debts = Query::get_debts(db, user.id).await.unwrap();
+    let settle = Query::settle(debts);
     let expenditures = Query::find_my_recent_expenditures(db, user.id).await.unwrap();
     let transfers = Query::find_my_recent_transfers(db, user.id).await.unwrap();
-    StatusIndexTemplate{title: None, flash, mobile_client: false, expenditures, transfers}
+    let net = settle.as_ref().ok().map(|settle|
+        settle.iter().filter_map(
+            |(from, to, amount)| Some(amount.clone()).filter(|_| *to == user.id)
+        ).sum::<Currency>() - settle.iter().filter_map(
+            |(from, to, amount)| Some(amount.clone()).filter(|_| *from == user.id)
+        ).sum()
+    ).filter(|v| *v != 0.into());
+    trace!("debts = {:?}", Query::get_debts(db, user.id).await);
+    StatusIndexTemplate{title: None, flash, mobile_client: false, settle, net, expenditures, transfers}
 }
 
 #[get("/spend")]

@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use crate::entities::{prelude::*, *};
 use sea_orm::{prelude::*, *};
-use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition};
+use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition, ConditionType, TableRef, IntoIden, SelectStatement};
 
 #[derive(FromQueryResult)]
 pub struct ExpenditureDisplay {
@@ -23,6 +25,12 @@ pub struct TransferDisplay {
     pub date: Option<Date>,
     pub debtor_name: Option<String>,
     pub creditor_name: Option<String>,
+}
+
+#[derive(Debug)]
+pub enum SettleError {
+    CollectiveDebt(Vec<(i32, Currency)>),
+    CollectiveCredit(Vec<(i32, Currency)>),
 }
 
 pub struct Query;
@@ -146,5 +154,133 @@ impl Query {
         User::find_by_id(id)
             .one(db)
             .await
+    }
+
+    pub async fn get_debts(db: &DbConn, user_id: i32) -> Result<HashMap<i32, Currency>, DbErr> {
+        #[derive(DeriveIden)]
+        struct TotalSpend;
+        #[derive(DeriveIden)]
+        struct TotalSplit;
+        #[derive(DeriveIden)]
+        struct TotalDebits;
+        #[derive(DeriveIden)]
+        struct TotalCredits;
+        let total_spend = Expenditure::find()
+            .select_only()
+            .column(expenditure::Column::SpenderId)
+            .column_as(expenditure::Column::Amount.sum(), "total")
+            .group_by(expenditure::Column::SpenderId);
+        let total_split = Split::find()
+            .select_only()
+            .column(split::Column::UserId)
+            .column_as(split::Column::Share.sum(), "total")
+            .group_by(split::Column::UserId);
+        let transfer_query = Transfer::find()
+            .select_only()
+            .column_as(transfer::Column::Amount.sum(), "total");
+        let total_debits = transfer_query.clone()
+            .column(transfer::Column::DebtorId)
+            .group_by(transfer::Column::DebtorId);
+        let total_credits = transfer_query.clone()
+            .column(transfer::Column::CreditorId)
+            .group_by(transfer::Column::CreditorId);
+        let query = User::find()
+            .select_only()
+            .column(user::Column::Id)
+            .join(
+                JoinType::LeftJoin,
+                expenditure::Relation::Spender.def().rev().to_subquery_one(total_spend.into_query(), TotalSpend),
+            )
+            .join(
+                JoinType::LeftJoin,
+                split::Relation::User.def().rev().to_subquery_one(total_split.into_query(), TotalSplit),
+            )
+            .join(
+                JoinType::LeftJoin,
+                transfer::Relation::Debtor.def().rev().to_subquery_one(total_debits.into_query(), TotalDebits),
+            )
+            .join(
+                JoinType::LeftJoin,
+                transfer::Relation::Creditor.def().rev().to_subquery_one(total_credits.into_query(), TotalCredits)
+            );
+        trace!("debts = {:?}",
+            query
+                .clone()
+                .exprs([
+                    Expr::col((TotalSplit, "total".into_identity())).if_null(0),
+                    Expr::col((TotalCredits, "total".into_identity())).if_null(0),
+                    Expr::col((TotalSpend, "total".into_identity())).if_null(0),
+                    Expr::col((TotalDebits, "total".into_identity())).if_null(0),
+                ])
+                .into_tuple::<(i32, Currency, Currency, Currency, Currency)>()
+                .all(db)
+                .await
+                .map(|v| v.into_iter().map(|(id, a, b, c, d)| (id, a.to_string(), b.to_string(), c.to_string(), d.to_string())).collect::<Vec<_>>())
+        );
+        query
+            .column_as(
+                Expr::col((TotalSplit, "total".into_identity())).if_null(0)
+                .add(Expr::col((TotalCredits, "total".into_identity())).if_null(0))
+                .sub(Expr::col((TotalSpend, "total".into_identity())).if_null(0))
+                .sub(Expr::col((TotalDebits, "total".into_identity())).if_null(0)),
+                "amount"
+            )
+            .into_tuple()
+            .all(db)
+            .await
+            .map(|v: Vec<(i32, Currency)>| v.into_iter().collect())
+    }
+
+    pub fn settle(debts: HashMap<i32, Currency>) -> Result<Vec<(i32, i32, Currency)>, SettleError> {
+        // This algorithm has been shamelessly stolen from Nelson Elhage's
+        // <nelhage@mit.edu> implementation for our 2008 summer apartment.
+        let (mut owes_list, mut owed_list): (Vec<_>, Vec<_>) = debts.into_iter().filter(|(_, v)| *v != 0.into()).partition(|(_, v)| *v > 0.into());
+
+        let mut settle_list: Vec<(i32, i32, Currency)> = Vec::new();
+
+        while owes_list.len() > 0 && owed_list.len() > 0 {
+            owes_list.sort_by_key(|(_, v)| v.clone());
+            owed_list.sort_by_key(|(_, v)| v.clone());
+
+            let owes = owes_list.pop().unwrap();
+            let owed = owed_list.pop().unwrap();
+
+            let sum = owes.1.clone() + owed.1.clone();
+
+            let val = if sum.is_zero() {
+                owes.1
+            } else if sum.is_positive() {
+                owes_list.push((owes.0, owes.1 + owed.1.clone()));
+                -owed.1
+            } else {
+                owed_list.push((owed.0, owed.1 + owes.1.clone()));
+                owes.1
+            };
+
+            settle_list.push((owes.0, owed.0, val));
+        }
+
+        if owes_list.len() > 0 {
+            Err(SettleError::CollectiveDebt(owes_list))
+        } else if owed_list.len() > 0 {
+            Err(SettleError::CollectiveCredit(owed_list))
+        } else {
+            Ok(settle_list)
+        }
+    }
+}
+
+trait RelationDefExt {
+    fn to_subquery_one(self, sq: SelectStatement, iden: impl IntoIden) -> Self;
+}
+impl RelationDefExt for RelationDef {
+    fn to_subquery_one(mut self, sq: SelectStatement, iden: impl IntoIden) -> Self {
+        self.rel_type = RelationType::HasOne;
+        self.to_tbl = TableRef::SubQuery(sq, iden.into_iden());
+        self.on_delete = None;
+        self.on_update = None;
+        self.fk_name = None;
+        self.condition_type = ConditionType::All;
+        self
     }
 }
