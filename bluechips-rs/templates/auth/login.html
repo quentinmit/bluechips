@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <form action="{{ uri!(auth_login_post()) }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
     <table class="form">
         <tr>
             <th>Username</th>

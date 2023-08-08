@@ -4,6 +4,7 @@ use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
+use rocket_csrf::{form::CsrfForm, CsrfToken};
 use rocket::State;
 use askama::Template; // bring trait in scope
 use sea_orm::Database;
@@ -72,20 +73,21 @@ struct AuthLoginTemplate<'a> { // the name of the struct can be anything
     title: Option<&'a str>,
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
+    authenticity_token: String,
 }
 
 #[get("/login")]
-fn auth_login<'a>(flash: Option<FlashMessage<'a>>) -> AuthLoginTemplate<'a> {
-    AuthLoginTemplate{title: Some("Login"), flash, mobile_client: false}
+fn auth_login<'a>(flash: Option<FlashMessage<'a>>, csrf_token: CsrfToken) -> AuthLoginTemplate<'a> {
+    let authenticity_token = csrf_token.authenticity_token();
+    AuthLoginTemplate{title: Some("Login"), flash, mobile_client: false, authenticity_token}
 }
 
 #[post("/login", data="<form>")]
 async fn auth_login_post<'a>(
     db: &State<DatabaseConnection>,
-    form: Form<auth::Login>,
-    auth: auth::Auth<'_>
+    form: CsrfForm<auth::Login>,
+    auth: auth::Auth<'_>,
 ) -> Result<Redirect, Flash<Redirect>> {
-    // TODO: XSRF protection
     let db = db as &DatabaseConnection;
     auth.login(&form, db).await
         .map_err(|e| Flash::error(unauthorized(), format!("{:?}", e)))?;
@@ -125,6 +127,7 @@ async fn rocket() -> _ {
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
     let session_manager: Box<dyn SessionManager> = Box::new(chashmap::CHashMap::new());
     rocket::build()
+        .attach(rocket_csrf::Fairing::default())
         .manage(db)
         .manage(session_manager)
         .register("/", catchers![unauthorized])
