@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 {% import "_list.html" as list %}
+{% macro period(name, data) %}
+  <tr>
+    <th>{{ name }}</th>
+    <td>{{ data.0 }}</td>
+    <td>{{ data.1 }}</td>
+  </tr>
+{% endmacro %}
 {% block content %}
 <div class="block">
   <h2>Settling Transfers</h2>
@@ -67,14 +74,11 @@
       <th class="scope">Everyone</th>
       <th class="scope">My Share</th>
     </tr>
-    % for period in ('Total', 'Past year', 'Year to date', 'Month to date', 'Last month'):
-      <tr>
-        <th>${period}</th>
-        % for scope in ('all', 'mine'):
-          <td>${c.totals[period][scope]}</td>
-        % endfor
-      </tr>
-    % endfor
+    {% call period("Total", totals.total) %}
+    {% call period("Past year", totals.past_year) %}
+    {% call period("Year to Date", totals.year_to_date) %}
+    {% call period("Month to Date", totals.month_to_date) %}
+    {% call period("Last month", totals.last_month) %}
   </table>
 </div>
 

@@ -358,6 +358,7 @@ dependencies = [
  "askama",
  "askama_rocket",
  "chashmap",
+ "chrono",
  "derive_more",
  "log",
  "password-auth",
@@ -500,8 +501,11 @@ checksum = "ec837a71355b28f6556dbd569b37b3f363091c0bd4b2e735674521b4c5fd9bc5"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "time 0.1.45",
+ "wasm-bindgen",
  "winapi",
 ]
 
@@ -571,7 +575,7 @@ dependencies = [
  "rand 0.8.5",
  "sha2",
  "subtle",
- "time",
+ "time 0.3.25",
  "version_check",
 ]
 
@@ -1041,7 +1045,7 @@ dependencies = [
  "cfg-if",
  "js-sys",
  "libc",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
  "wasm-bindgen",
 ]
 
@@ -1569,7 +1573,7 @@ checksum = "927a765cd3fc26206e66b296465fa9d3e5ab003e651c1b3c060e7956d96b19d2"
 dependencies = [
  "libc",
  "log",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.48.0",
 ]
 
@@ -2426,7 +2430,7 @@ dependencies = [
  "serde",
  "state",
  "tempfile",
- "time",
+ "time 0.3.25",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -2496,7 +2500,7 @@ dependencies = [
  "smallvec 1.11.0",
  "stable-pattern",
  "state",
- "time",
+ "time 0.3.25",
  "tokio",
  "uncased",
 ]
@@ -2665,7 +2669,7 @@ dependencies = [
  "sqlx",
  "strum",
  "thiserror",
- "time",
+ "time 0.3.25",
  "tracing",
  "url",
  "uuid",
@@ -2698,7 +2702,7 @@ dependencies = [
  "ordered-float",
  "rust_decimal",
  "serde_json",
- "time",
+ "time 0.3.25",
  "uuid",
 ]
 
@@ -2714,7 +2718,7 @@ dependencies = [
  "sea-query",
  "serde_json",
  "sqlx",
- "time",
+ "time 0.3.25",
  "uuid",
 ]
 
@@ -2985,7 +2989,7 @@ dependencies = [
  "smallvec 1.11.0",
  "sqlformat",
  "thiserror",
- "time",
+ "time 0.3.25",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -3073,7 +3077,7 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror",
- "time",
+ "time 0.3.25",
  "tracing",
  "uuid",
  "whoami",
@@ -3118,7 +3122,7 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror",
- "time",
+ "time 0.3.25",
  "tracing",
  "uuid",
  "whoami",
@@ -3143,7 +3147,7 @@ dependencies = [
  "percent-encoding",
  "serde",
  "sqlx-core",
- "time",
+ "time 0.3.25",
  "tracing",
  "url",
  "uuid",
@@ -3292,6 +3296,17 @@ checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "time"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
+dependencies = [
+ "libc",
+ "wasi 0.10.0+wasi-snapshot-preview1",
+ "winapi",
 ]
 
 [[package]]
@@ -3705,6 +3720,12 @@ checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
 dependencies = [
  "try-lock",
 ]
+
+[[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"

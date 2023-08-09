@@ -14,7 +14,7 @@ use sea_orm::sea_query::IntoCondition;
 mod entities;
 
 mod service;
-use service::{Query, ExpenditureDisplay, TransferDisplay, SettleError};
+use service::{Query, ExpenditureDisplay, TransferDisplay, SettleError, Totals};
 
 mod auth;
 use auth::SessionManager;
@@ -32,6 +32,7 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
     net: Option<Currency>,
     expenditures: Vec<ExpenditureDisplay>,
     transfers: Vec<TransferDisplay>,
+    totals: Totals,
 }
 
 #[get("/")]
@@ -48,8 +49,8 @@ async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'
             |(from, to, amount)| Some(amount.clone()).filter(|_| *from == user.id)
         ).sum()
     ).filter(|v| *v != 0.into());
-    trace!("debts = {:?}", Query::get_debts(db, user.id).await);
-    StatusIndexTemplate{title: None, flash, mobile_client: false, settle, net, expenditures, transfers}
+    let totals = Query::get_totals(db, user.id).await.unwrap();
+    StatusIndexTemplate{title: None, flash, mobile_client: false, settle, net, expenditures, transfers, totals}
 }
 
 #[get("/spend")]

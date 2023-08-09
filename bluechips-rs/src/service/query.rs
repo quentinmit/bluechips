@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::ops::{RangeBounds, Bound};
 
 use crate::entities::{prelude::*, *};
 use sea_orm::{prelude::*, *};
 use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition, ConditionType, TableRef, IntoIden, SelectStatement};
+use chrono::{Local, NaiveDate, Datelike, Duration, Months};
 
 #[derive(FromQueryResult)]
 pub struct ExpenditureDisplay {
@@ -268,6 +270,49 @@ impl Query {
             Ok(settle_list)
         }
     }
+
+    async fn get_totals_for_date_range(db: &DbConn, user_id: i32, range: impl RangeBounds<NaiveDate>) -> Result<(Currency, Currency), DbErr> {
+        let query = Expenditure::find()
+            .select_only();
+        let query = match range.start_bound() {
+            Bound::Included(d) => query.filter(expenditure::Column::Date.gte(*d)),
+            Bound::Excluded(d) => query.filter(expenditure::Column::Date.gt(*d)),
+            Bound::Unbounded => query,
+        };
+        let query = match range.end_bound() {
+            Bound::Included(d) => query.filter(expenditure::Column::Date.lte(*d)),
+            Bound::Excluded(d) => query.filter(expenditure::Column::Date.lt(*d)),
+            Bound::Unbounded => query,
+        };
+        query
+            .join(JoinType::LeftJoin, expenditure::Relation::Split.def().on_condition(move |_, right| {Expr::col((right, split::Column::UserId)).eq(user_id).into_condition()}))
+            .column_as(expenditure::Column::Amount.sum(), "total")
+            .column_as(Expr::expr(split::Column::Share.sum()).if_null(0), "mine")
+            .into_tuple::<(Currency, Currency)>()
+            .one(db)
+            .await
+            .map(|v| v.unwrap_or((0.into(), 0.into())))
+    }
+
+    pub async fn get_totals(db: &DbConn, user_id: i32) -> Result<Totals, DbErr> {
+        let today = Local::now().date_naive();
+        let first_of_month = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
+        Ok(Totals {
+            total: Self::get_totals_for_date_range(db, user_id, ..).await?,
+            past_year: Self::get_totals_for_date_range(db, user_id, today-Duration::days(365)..).await?,
+            year_to_date: Self::get_totals_for_date_range(db, user_id, NaiveDate::from_yo_opt(today.year(), 1).unwrap()..).await?,
+            month_to_date: Self::get_totals_for_date_range(db, user_id, first_of_month..).await?,
+            last_month: Self::get_totals_for_date_range(db, user_id, first_of_month-Months::new(1)..first_of_month).await?,
+        })
+    }
+}
+
+pub struct Totals {
+    pub total: (Currency, Currency),
+    pub past_year: (Currency, Currency),
+    pub year_to_date: (Currency, Currency),
+    pub month_to_date: (Currency, Currency),
+    pub last_month: (Currency, Currency),
 }
 
 trait RelationDefExt {
