@@ -123,7 +123,7 @@ async fn history_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMe
     let db = db as &DatabaseConnection;
     let expenditures = Query::find_all_expenditures(db, user.id).await.unwrap();
     let transfers = Query::find_all_transfers(db, user.id).await.unwrap();
-    HistoryIndexTemplate{title: None, flash: flash, mobile_client: false, expenditures, transfers}
+    HistoryIndexTemplate{title: Some("History"), flash: flash, mobile_client: false, expenditures, transfers}
 }
 
 #[get("/user")]
