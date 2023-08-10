@@ -8,6 +8,9 @@ use rusty_money::{Money, MoneyError, Round, FormattableCurrency, iso};
 pub struct Currency(Money<'static, iso::Currency>);
 
 impl Currency {
+    pub fn amount(&self) -> &Decimal {
+        self.0.amount()
+    }
     pub fn is_zero(&self) -> bool {
         self.0.is_zero()
     }

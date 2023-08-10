@@ -145,6 +145,13 @@ impl Query {
             .await
     }
 
+    pub async fn find_users(db: &DbConn) -> Result<Vec<user::Model>, DbErr> {
+        User::find()
+            .order_by_asc(user::Column::Id)
+            .all(db)
+            .await
+    }
+
     pub async fn find_user_by_username(db: &DbConn, username: &str) -> Result<Option<user::Model>, DbErr> {
         User::find()
             .filter(user::Column::Username.eq(username))
@@ -158,7 +165,7 @@ impl Query {
             .await
     }
 
-    pub async fn get_debts(db: &DbConn, user_id: i32) -> Result<HashMap<i32, Currency>, DbErr> {
+    pub async fn get_debts(db: &DbConn) -> Result<HashMap<i32, Currency>, DbErr> {
         #[derive(DeriveIden)]
         struct TotalSpend;
         #[derive(DeriveIden)]

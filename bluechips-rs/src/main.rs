@@ -1,8 +1,11 @@
 #[macro_use] extern crate rocket;
+use std::collections::HashMap;
+
 use entities::prelude::Currency;
 use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::Status;
+use rocket::response::status::Custom;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
 use rocket_csrf::{form::CsrfForm, CsrfToken};
@@ -36,33 +39,98 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
 }
 
 #[get("/")]
-async fn status<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> StatusIndexTemplate<'a> {
+async fn status_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> StatusIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
-    let debts = Query::get_debts(db, user.id).await.unwrap();
+    let debts = Query::get_debts(db).await.unwrap();
     let settle = Query::settle(debts);
     let expenditures = Query::find_my_recent_expenditures(db, user.id).await.unwrap();
     let transfers = Query::find_my_recent_transfers(db, user.id).await.unwrap();
     let net = settle.as_ref().ok().map(|settle|
         settle.iter().filter_map(
-            |(from, to, amount)| Some(amount.clone()).filter(|_| *to == user.id)
+            |(_, to, amount)| Some(amount.clone()).filter(|_| *to == user.id)
         ).sum::<Currency>() - settle.iter().filter_map(
-            |(from, to, amount)| Some(amount.clone()).filter(|_| *from == user.id)
+            |(from, _, amount)| Some(amount.clone()).filter(|_| *from == user.id)
         ).sum()
     ).filter(|v| *v != 0.into());
     let totals = Query::get_totals(db, user.id).await.unwrap();
     StatusIndexTemplate{title: None, flash, mobile_client: false, settle, net, expenditures, transfers, totals}
 }
 
+#[derive(Template)] // this will generate the code...
+#[template(path = "spend/index.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+struct SpendTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+    authenticity_token: String,
+    users: Vec<entities::user::Model>,
+    expenditure: entities::expenditure::ActiveModel,
+    splits: HashMap<i32, entities::split::ActiveModel>,
+}
+
 #[get("/spend")]
-fn spend_index() -> Option<()> {
-    None
+async fn spend_index<'a>(
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    user: auth::User,
+    csrf_token: CsrfToken
+) -> Result<SpendTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let users = Query::find_users(db).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    let splits = users.iter().filter(|u| u.resident).map(|u| (u.id, entities::split::ActiveModel{
+        user_id: ActiveValue::set(u.id),
+        share: ActiveValue::set(100.into()),
+        ..Default::default()
+    })).collect();
+    Ok(SpendTemplate {
+        title: Some("Add a New Expenditure"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        users,
+        expenditure: entities::expenditure::ActiveModel {
+            spender_id: ActiveValue::Set(user.id),
+            date: ActiveValue::Set(Some(chrono::Local::now().date_naive())),
+            ..Default::default()
+        },
+        splits,
+    })
 }
 #[get("/spend/<id>/edit")]
-fn spend_edit(id: i32) -> Option<()> {
-    None
+async fn spend_edit<'a>(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    user: auth::User,
+    csrf_token: CsrfToken
+) -> Result<SpendTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let expenditure =
+        entities::expenditure::Entity::find_by_id(id)
+            .one(db)
+            .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+            .ok_or(Custom(Status::NotFound, "expenditure not found".to_string()))?;
+    let splits =
+        expenditure.find_related(entities::split::Entity).all(db).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    let splits = splits.into_iter().map(|s| (s.user_id, s.into_active_model())).collect();
+    let users = Query::find_users(db).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(SpendTemplate {
+        title: Some("Edit an Expenditure"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        users,
+        expenditure: expenditure.into_active_model(),
+        splits,
+    })
 }
 #[get("/spend/<id>/delete")]
 fn spend_delete(id: i32) -> Option<()> {
+    None
+}
+#[post("/spend/<id>")]
+fn spend_edit_post(id: i32) -> Option<()> {
     None
 }
 
@@ -105,7 +173,7 @@ async fn auth_login_post<'a>(
     let db = db as &DatabaseConnection;
     auth.login(&form, db).await
         .map_err(|e| Flash::error(unauthorized(), format!("{:?}", e)))?;
-    Ok(Redirect::to(uri!(status())))
+    Ok(Redirect::to(uri!(status_index())))
 }
 
 #[derive(Template)]
@@ -145,7 +213,7 @@ async fn rocket() -> _ {
         .manage(db)
         .manage(session_manager)
         .register("/", catchers![unauthorized])
-        .mount("/", routes![status, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
+        .mount("/", routes![status_index, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))

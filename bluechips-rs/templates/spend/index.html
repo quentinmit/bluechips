@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<form action="{{ uri!(spend_edit_post(id=self.expenditure.id.clone().take().unwrap_or(0))) }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
+  <table class="form">
+    <tr>
+      <th><label for="spender_id">Spender</label></th>
+      <td>
+        <select name="spender_id">
+          {% for user in users %}
+            <option value="{{ user.id }}"{% if Some(user.id) == expenditure.spender_id.clone().take().as_ref() %} selected{% endif %}>{{ user.name.as_ref().unwrap_or(user.username) }}</option>
+          {% endfor %}
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <th><label for="amount">Amount</label></th>
+      <td>
+        <input type="text" name="amount" value="{{ expenditure.amount.clone().take().unwrap_or(0.into()).amount() }}" class="currency" size="8" onkeyup="calcSplit();" />
+      </td>
+    </tr>
+    <tr>
+      <th><label for="date">Date</label></th>
+      <td>
+        <input type="text" name="date" value="{% if let Some(v) = expenditure.date.clone().take().flatten() %}{{ v.format("%m/%d/%Y") }}{% endif %}" class="datepicker" size="16" />
+      </td>
+    </tr>
+    <tr>
+      <th><label for="description">Description</label></th>
+      <td>
+        <input type="text" name="description" value="{{ expenditure.description.clone().take().flatten().unwrap_or_default() }}" size="64" />
+      </td>
+    </tr>
+  </table>
+
+  <p>Change how an expenditure is split up. Enter a percentage, or something like a percentage, for each user. They don't have to add to 100.</p>
+
+  <table class="form">
+    {% for user in users %}
+      <tr>
+        <th><label for="splits[{{user.id}}]">{{user.name.as_ref().unwrap_or(user.username)}}</label></th>
+        <td>
+          <input
+            type="text"
+            name="splits[{{user.id}}]"
+            value="{% if let Some(split) = splits.get(user.id) %}{{split.share.clone().take().unwrap_or(0.into()).amount() }}{% endif %}"
+            class="share-text"
+            onchange="calcSplit();"
+            onkeyup="calcSplit();"
+          />
+        </td>
+        <td id="splits[{{user.id}}]-calc" align="right">
+          0.00
+        </td>
+      </tr>
+    {% endfor %}
+    <tr>
+      <td colspan="2">
+        <input type="submit" value="Submit" class="submitbutton" />
+      </td>
+    </tr>
+  </table>
+</form>
+${h.javascript_link('%s/js/calculator.js' % request.script_name)}
+{% endblock %}
