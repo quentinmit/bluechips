@@ -32,5 +32,4 @@ thiserror = "1.0.44"
 # Not on crates.io for some reason?
 askama_rocket = { git = "https://github.com/djc/askama.git", rev = "0.12.0" }
 askama = { git = "https://github.com/djc/askama.git", rev = "0.12.0" }
-#rocket_csrf = { git = "https://github.com/kotovalexarian/rocket_csrf", rev = "e3c0ad8b05aecc087ece60b87848a9a3d6a881e8" }
-rocket_csrf = { path = "/Users/quentin/Software/rocket_csrf" }
+rocket_csrf = { git = "https://github.com/quentinmit/rocket_csrf", branch = "csrf-form" }

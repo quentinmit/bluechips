@@ -2458,6 +2458,7 @@ dependencies = [
 [[package]]
 name = "rocket_csrf"
 version = "0.3.0"
+source = "git+https://github.com/quentinmit/rocket_csrf?branch=csrf-form#55961a2fc21fdc58204121701ae2e102ce07bb0b"
 dependencies = [
  "base64 0.13.1",
  "bcrypt",
