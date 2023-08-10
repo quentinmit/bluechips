@@ -5,6 +5,7 @@ in {
   packages = with rpkgs; [
     #(rust-bin.fromRustupToolchainFile ../discobiker/frontend/rust-toolchain.toml)
     rust-bin.stable.latest.default
+    cargo-watch
     #trunk
     stdenv.cc
     openssl
@@ -37,6 +38,8 @@ in {
           "ROCKET_PORT=$PORT"
           "ROCKET_ADDRESS=0.0.0.0"
           "cargo"
+          "watch"
+          "-x"
           "run"
         ];
         cwd = "bluechips-rs";
