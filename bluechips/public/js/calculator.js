@@ -17,20 +17,20 @@ function validateSplit(input) {
 }
 
 function calcSplit() {
-    amount = document.getElementById("amount").value;
-    total = 0;
-        var values = new Array();
-    textvals = document.getElementsByClassName("share-text");
+    const amount = document.getElementById("amount").value;
+    let total = 0;
+    let values = new Array();
+    const textvals = document.getElementsByClassName("share-text");
     for (i=0; i<textvals.length; i++) {
-        v = validateSplit(textvals[i].value);
+        const v = validateSplit(textvals[i].value);
         if (!isNaN(v)) {
             total += v;
         }
         values[i] = v;
     }
     for (i=0; i<textvals.length; i++) {
-        id = textvals[i].id+'-calc';
-        val = (amount*values[i]/total).toFixed(2);
+        const id = textvals[i].id+'-calc';
+        const val = (amount*values[i]/total).toFixed(2);
         document.getElementById(id).innerHTML = val;
     }
 }

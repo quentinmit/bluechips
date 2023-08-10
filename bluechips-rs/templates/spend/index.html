@@ -16,7 +16,7 @@
     <tr>
       <th><label for="amount">Amount</label></th>
       <td>
-        <input type="text" name="amount" value="{{ expenditure.amount.clone().take().unwrap_or(0.into()).amount() }}" class="currency" size="8" onkeyup="calcSplit();" />
+        <input type="text" id="amount" name="amount" value="{{ expenditure.amount.clone().take().unwrap_or(0.into()).amount() }}" class="currency" size="8" onkeyup="calcSplit();" />
       </td>
     </tr>
     <tr>
@@ -42,6 +42,7 @@
         <td>
           <input
             type="text"
+            id="splits[{{user.id}}]"
             name="splits[{{user.id}}]"
             value="{% if let Some(split) = splits.get(user.id) %}{{split.share.clone().take().unwrap_or(0.into()).amount() }}{% endif %}"
             class="share-text"
@@ -61,5 +62,7 @@
     </tr>
   </table>
 </form>
-${h.javascript_link('%s/js/calculator.js' % request.script_name)}
+{% endblock %}
+{% block extra_head %}
+<script src="/js/calculator.js"></script>
 {% endblock %}
