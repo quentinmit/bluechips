@@ -26,8 +26,8 @@
           </tr>
           {% for transfer in settle %}
             <tr>
-              <td>{{transfer.0}}</td>
-              <td>{{transfer.1}}</td>
+              <td>{% call list::format_username(transfer.0) %}</td>
+              <td>{% call list::format_username(transfer.1) %}</td>
               <td class="amount">{{transfer.2}}</td>
             </tr>
           {% endfor %}

@@ -68,11 +68,3 @@
     </div>
   </body>
 </html>
-
-{% macro formatUser(user) %}
-  {% if user == user %}
-    <strong>Me</strong>
-  {% else %}
-    {{ user.name }}
-  {% endif %}
-{% endmacro %}

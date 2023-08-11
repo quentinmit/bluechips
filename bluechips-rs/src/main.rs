@@ -31,25 +31,35 @@ struct StatusIndexTemplate<'a> { // the name of the struct can be anything
     title: Option<&'a str>,
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
-    settle: Result<Vec<(i32, i32, Currency)>, SettleError>,
+    settle: Result<Vec<(Option<String>, Option<String>, Currency)>, SettleError>,
     net: Option<Currency>,
     expenditures: Vec<ExpenditureDisplay>,
     transfers: Vec<TransferDisplay>,
     totals: Totals,
 }
-
 #[get("/")]
 async fn status_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMessage<'a>>, user: auth::User) -> StatusIndexTemplate<'a> {
     let db = db as &DatabaseConnection;
+    let users: HashMap<_, _> = Query::find_users(db).await.unwrap().into_iter().map(|u| (u.id, u)).collect();
     let debts = Query::get_debts(db).await.unwrap();
     let settle = Query::settle(debts);
+    let get_username = |id: i32| Some(id)
+        .filter(|id| id != &user.id)
+        .map(|id| users.get(&id).map(
+            |u| u.name.clone().unwrap_or(u.username.clone())).unwrap_or(format!("{}", id))
+        );
+    let settle = settle.map(
+        |v| v.into_iter().map(
+            |(from, to, amount)|
+            (get_username(from), get_username(to), amount)
+        ).collect::<Vec<_>>());
     let expenditures = Query::find_my_recent_expenditures(db, user.id).await.unwrap();
     let transfers = Query::find_my_recent_transfers(db, user.id).await.unwrap();
     let net = settle.as_ref().ok().map(|settle|
         settle.iter().filter_map(
-            |(_, to, amount)| Some(amount.clone()).filter(|_| *to == user.id)
+            |(_, to, amount)| Some(amount.clone()).filter(|_| to.is_none())
         ).sum::<Currency>() - settle.iter().filter_map(
-            |(from, _, amount)| Some(amount.clone()).filter(|_| *from == user.id)
+            |(from, _, amount)| Some(amount.clone()).filter(|_| from.is_none())
         ).sum()
     ).filter(|v| *v != 0.into());
     let totals = Query::get_totals(db, user.id).await.unwrap();

@@ -1,3 +1,10 @@
+{% macro format_username(name) %}
+  {% if let Some(name) = name %}
+    {{ name }}
+  {% else %}
+    <strong>Me</strong>
+  {% endif %}
+{% endmacro %}
 {% macro list_expenditures(es) %}
   <table class="list">
     <tr>
@@ -12,7 +19,7 @@
     {% for e in es %}
       <tr class="{% if e.involved %}user-involved{% else %}user-not-involved{% endif %}">
         <td class="date">{% if let Some(date) = e.date %}{{date}}{% endif %}</td>
-        <td class="user">{% if let Some(name) = e.spender_name %}{{ name }}{% else %}<strong>Me</strong>{% endif %}</td>
+        <td class="user">{% call format_username(e.spender_name) %}</td>
         <td class="description">{% if let Some(description) = e.description %}{{description}}{% endif %}</td>
         <td class="amount">{{ e.amount }}</td>
         <td class="share">{{ e.share_amount }}</td>
@@ -37,8 +44,8 @@
     {% for t in ts %}
       <tr class="{% if t.involved %}user-involved{% else %}user-not-involved{% endif %}">
         <td class="date">{% if let Some(date) = t.date %}{{ date }}{% endif %}</td>
-        <td class="user">{% if let Some(name) = t.debtor_name %}{{ name }}{% else %}<strong>Me</strong>{% endif %}</td>
-        <td class="user">{% if let Some(name) = t.creditor_name %}{{ name }}{% else %}<strong>Me</strong>{% endif %}</td>
+        <td class="user">{% call format_username(t.debtor_name) %}</td>
+        <td class="user">{% call format_username(t.creditor_name) %}</td>
         <td class="description">{% if let Some(description) = t.description %}{{ description }}{% endif %}</td>
         <td class="amount">{{ t.amount }}</td>
         <td class="editlink"><a href="{{ uri!(transfer_edit(id = t.id)) }}">Edit</a></td>
