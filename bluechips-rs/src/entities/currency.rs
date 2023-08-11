@@ -45,8 +45,10 @@ impl std::iter::Sum for Currency {
 impl From<Currency> for Value {
     fn from(source: Currency) -> Self {
         let rounded = source.0.round(source.0.currency().exponent(), Round::HalfEven);
-        assert_eq!(rounded.amount().scale(), source.0.currency().exponent());
-        (rounded.amount().mantissa() as i32).into()
+        let mut amount = rounded.amount().clone();
+        amount.rescale(source.0.currency().exponent());
+        assert_eq!(amount.scale(), source.0.currency().exponent());
+        (amount.mantissa() as i32).into()
     }
 }
 
