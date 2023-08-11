@@ -151,7 +151,7 @@ impl<'a> Auth<'a> {
         let user = Query::find_user_by_username(db, &form.username).await?.ok_or(Error::UserNotFoundError)?;
         let user_pwd = &user.password.ok_or(Error::UnauthorizedError)?;
         verify_password(form_pwd, user_pwd)?;
-        let key = self.set_auth_key(user.id)?;
+        let key = self.set_auth_key(user.id).await?;
         let session = Session {
             id: user.id,
             username: user.username,
@@ -163,22 +163,22 @@ impl<'a> Auth<'a> {
         Ok(())
     }
 
-    fn set_auth_key(&self, user_id: i32) -> Result<String> {
+    async fn set_auth_key(&self, user_id: i32) -> Result<String> {
         let key = rand_string(15);
-        self.users.sess.insert(user_id, key.clone())?;
+        self.users.sess.insert(user_id, key.clone()).await?;
         Ok(key)
     }
 
-    pub fn is_auth(&self) -> bool {
+    pub async fn is_auth(&self) -> bool {
         if let Some(session) = &self.session {
-            self.users.sess.get(session.id).map(|auth_key| auth_key == session.auth_key).unwrap_or_default()
+            self.users.sess.get(session.id).await.map(|auth_key| auth_key == session.auth_key).unwrap_or_default()
         } else {
             false
         }
     }
 
     pub async fn get_user(&self, db: &DatabaseConnection) -> Option<User> {
-        if !self.is_auth() {
+        if !self.is_auth().await {
             return None;
         }
         let id = self.session.as_ref()?.id;
