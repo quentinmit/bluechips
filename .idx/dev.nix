@@ -13,6 +13,7 @@ in {
     openssl
     openssl.dev
     pkg-config
+    sqlite-interactive
     #google-cloud-sdk
   ];
 
