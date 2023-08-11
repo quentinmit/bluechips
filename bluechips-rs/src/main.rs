@@ -142,12 +142,25 @@ async fn spend_new_post(
     Mutation::create_expenditure(db, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
     Ok(Flash::success(
         Redirect::to(uri!(status_index())),
-        format!("Expenditure of {} paid for by {} created.", form.amount, form.spender_id)
+        format!("Expenditure of {} paid for by {} created.", form.amount, spender.name.unwrap_or(spender.username))
     ))
 }
-#[post("/spend/<id>")]
-fn spend_edit_post(id: i32) -> Option<()> {
-    None
+#[post("/spend/<id>", data="<form>")]
+async fn spend_edit_post(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    _user: auth::User,
+    form: CsrfForm<ExpenditureForm>,
+) -> Result<Flash<Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let spender = Query::get_user_by_id(db, form.spender_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "spender not found".to_string()))?;
+    Mutation::update_expenditure(db, id, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(Flash::success(
+        Redirect::to(uri!(status_index())),
+        format!("Expenditure of {} paid for by {} updated.", form.amount, spender.name.unwrap_or(spender.username))
+    ))
 }
 
 #[get("/transfer")]
