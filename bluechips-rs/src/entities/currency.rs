@@ -42,13 +42,25 @@ impl std::iter::Sum for Currency {
     }
 }
 
+impl<'a> std::iter::Sum<&'a Currency> for Currency {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(0.into(), |a, b| a + b.clone())
+    }
+}
+
 impl From<Currency> for Value {
+    fn from(source: Currency) -> Self {
+        i32::from(source).into()
+    }
+}
+
+impl From<Currency> for i32 {
     fn from(source: Currency) -> Self {
         let rounded = source.0.round(source.0.currency().exponent(), Round::HalfEven);
         let mut amount = rounded.amount().clone();
         amount.rescale(source.0.currency().exponent());
         assert_eq!(amount.scale(), source.0.currency().exponent());
-        (amount.mantissa() as i32).into()
+        amount.mantissa() as i32
     }
 }
 
