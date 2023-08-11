@@ -2,7 +2,6 @@
 use std::collections::HashMap;
 
 use entities::prelude::Currency;
-use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::status::Custom;
@@ -12,7 +11,6 @@ use rocket_csrf::{form::CsrfForm, CsrfToken};
 use rocket::State;
 use askama::Template; // bring trait in scope
 use sea_orm::Database;
-use sea_orm::sea_query::IntoCondition;
 
 mod entities;
 
@@ -112,7 +110,7 @@ async fn spend_edit<'a>(
     id: i32,
     db: &State<DatabaseConnection>,
     flash: Option<FlashMessage<'a>>,
-    user: auth::User,
+    _user: auth::User,
     csrf_token: CsrfToken
 ) -> Result<SpendTemplate<'a>, Custom<String>> {
     let db = db as &DatabaseConnection;
@@ -142,7 +140,7 @@ fn spend_delete(id: i32) -> Option<()> {
 #[post("/spend", data="<form>")]
 async fn spend_new_post(
     db: &State<DatabaseConnection>,
-    _user: auth::User,
+    user: auth::User,
     form: CsrfForm<ExpenditureForm>,
 ) -> Result<Flash<Redirect>, Custom<String>> {
     let db = db as &DatabaseConnection;
@@ -159,7 +157,7 @@ async fn spend_new_post(
 async fn spend_edit_post(
     id: i32,
     db: &State<DatabaseConnection>,
-    _user: auth::User,
+    user: auth::User,
     form: CsrfForm<ExpenditureForm>,
 ) -> Result<Flash<Redirect>, Custom<String>> {
     let db = db as &DatabaseConnection;

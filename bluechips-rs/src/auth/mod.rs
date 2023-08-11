@@ -1,5 +1,5 @@
 use rocket::http::{Cookie, CookieJar, Status};
-use rocket::{State, Data};
+use rocket::State;
 use rocket::request::{FromRequest, Outcome, Request};
 use rocket::serde::{Serialize, Deserialize};
 use rocket::outcome::try_outcome;
@@ -7,8 +7,6 @@ use sea_orm::DatabaseConnection;
 use serde_json::{json, from_str};
 use password_auth::{verify_password, VerifyError};
 use std::time::SystemTime;
-
-use log::trace;
 
 mod session;
 pub use session::SessionManager;
