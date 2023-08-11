@@ -59,7 +59,17 @@ impl From<i32> for Currency {
 impl TryFrom<&str> for Currency {
     type Error = MoneyError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
+        if value == "" {
+            return Ok(0.into());
+        }
         Money::from_str(value, iso::USD).map(|m| Self(m))
+    }
+}
+
+#[rocket::async_trait]
+impl<'v> rocket::form::FromFormField<'v> for Currency {
+    fn from_value(field: rocket::form::ValueField<'v>) -> rocket::form::Result<'v, Self> {
+        Self::try_from(field.value).map_err(|e| rocket::form::Error::validation(format!("failed to parse currency: {:?}", e)).into())
     }
 }
 

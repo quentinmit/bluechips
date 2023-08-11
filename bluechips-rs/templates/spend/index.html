@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<form action="{{ uri!(spend_edit_post(id=self.expenditure.id.clone().take().unwrap_or(0))) }}" method="post">
+<form action="{% if let Some(id) = self.expenditure.id.clone().take() %}{{ uri!(spend_edit_post(id=id)) }}{% else %}{{ uri!(spend_new_post()) }}{% endif %}" method="post">
   <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
   <table class="form">
     <tr>

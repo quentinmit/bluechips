@@ -17,7 +17,7 @@ use sea_orm::sea_query::IntoCondition;
 mod entities;
 
 mod service;
-use service::{Query, ExpenditureDisplay, TransferDisplay, SettleError, Totals};
+use service::{Query, Mutation, ExpenditureDisplay, TransferDisplay, SettleError, Totals, ExpenditureForm};
 
 mod auth;
 use auth::SessionManager;
@@ -129,6 +129,22 @@ async fn spend_edit<'a>(
 fn spend_delete(id: i32) -> Option<()> {
     None
 }
+#[post("/spend", data="<form>")]
+async fn spend_new_post(
+    db: &State<DatabaseConnection>,
+    _user: auth::User,
+    form: CsrfForm<ExpenditureForm>,
+) -> Result<Flash<Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let spender = Query::get_user_by_id(db, form.spender_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "spender not found".to_string()))?;
+    Mutation::create_expenditure(db, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(Flash::success(
+        Redirect::to(uri!(status_index())),
+        format!("Expenditure of {} paid for by {} created.", form.amount, form.spender_id)
+    ))
+}
 #[post("/spend/<id>")]
 fn spend_edit_post(id: i32) -> Option<()> {
     None
@@ -213,7 +229,7 @@ async fn rocket() -> _ {
         .manage(db)
         .manage(session_manager)
         .register("/", catchers![unauthorized])
-        .mount("/", routes![status_index, spend_index, spend_edit, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
+        .mount("/", routes![status_index, spend_index, spend_edit, spend_new_post, spend_edit_post, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))

@@ -4,7 +4,9 @@ in {
   # Use https://search.nixos.org/packages?channel=unstable to  find packages
   packages = with rpkgs; [
     #(rust-bin.fromRustupToolchainFile ../discobiker/frontend/rust-toolchain.toml)
-    rust-bin.stable.latest.default
+    (rust-bin.stable.latest.default.override {
+      extensions = [ "rust-src" ];
+    })
     cargo-watch
     #trunk
     stdenv.cc
@@ -27,6 +29,7 @@ in {
     # search for the extension on https://open-vsx.org/ and use "publisher.id"
 
     extensions = [
+      "rust-lang.rust-analyzer"
       # "angular.ng-template"
     ];
 
@@ -39,6 +42,8 @@ in {
           "ROCKET_ADDRESS=0.0.0.0"
           "cargo"
           "watch"
+          "-i"
+          "database.sqlite3"
           "-x"
           "run"
         ];
