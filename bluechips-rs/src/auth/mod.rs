@@ -10,6 +10,7 @@ use std::time::SystemTime;
 
 mod session;
 pub use session::SessionManager;
+mod db_session;
 
 use rand::random;
 pub fn rand_string(size: usize) -> String {
@@ -192,7 +193,7 @@ use crate::service::*;
 pub struct Resident(User);
 
 pub struct Users<'a> {
-    sess: &'a State<Box<dyn SessionManager>>,
+    sess: &'a dyn SessionManager,
 }
 
 impl<'a> Users<'a> {
@@ -203,15 +204,20 @@ impl<'a> Users<'a> {
 impl<'r> FromRequest<'r> for Users<'r> {
     type Error = Error;
     async fn from_request(req: &'r Request<'_>) -> Outcome<Users<'r>, Error> {
-        let session_manager: &State<Box<dyn SessionManager>> = if let Outcome::Success(session_manager) = req.guard().await {
-            session_manager
-        } else {
-            return Outcome::Failure((Status::InternalServerError, Error::UnmanagedStateError));
+        let session_manager: Option<&dyn SessionManager> = match req.guard::<&State<Box<dyn SessionManager>>>().await.succeeded() {
+            Some(session_manager) => Some(session_manager.inner().as_ref()),
+            None => {
+                let db = req.guard::<&State<DatabaseConnection>>().await.succeeded();
+                db
+                    .map(|db| db as &DatabaseConnection as &dyn SessionManager)
+            }
         };
-
-        Outcome::Success(Users {
-            sess: session_manager,
-        })
+        match session_manager {
+            None => Outcome::Failure((Status::InternalServerError, Error::UnmanagedStateError)),
+            Some(session_manager) => Outcome::Success(Users {
+                sess: session_manager,
+            })
+        }
     }
 }
 

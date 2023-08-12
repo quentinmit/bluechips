@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use entities::prelude::Currency;
+use rocket::fairing::AdHoc;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::status::Custom;
@@ -244,11 +245,9 @@ fn unauthorized() -> Redirect {
 #[launch]
 async fn rocket() -> _ {
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
-    let session_manager: Box<dyn SessionManager> = Box::new(chashmap::CHashMap::new());
     rocket::build()
         .attach(rocket_csrf::Fairing::default())
         .manage(db)
-        .manage(session_manager)
         .register("/", catchers![unauthorized])
         .mount("/", routes![status_index, spend_index, spend_edit, spend_new_post, spend_edit_post, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
         .mount("/js", FileServer::from("public/js/"))

@@ -8,3 +8,4 @@ pub mod subitem;
 pub mod transfer;
 pub mod user;
 pub mod currency;
+pub mod auth_session;

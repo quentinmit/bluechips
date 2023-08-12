@@ -5,4 +5,5 @@ pub use super::split::Entity as Split;
 pub use super::subitem::Entity as Subitem;
 pub use super::transfer::Entity as Transfer;
 pub use super::user::Entity as User;
+pub use super::auth_session::Entity as AuthSession;
 pub use super::currency::Currency;
