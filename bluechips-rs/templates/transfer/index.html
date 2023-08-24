@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<form action="{% if let Some(id) = self.transfer.id.clone().take() %}{{ uri!(transfer_edit_post(id=id)) }}{% else %}{{ uri!(transfer_new_post()) }}{% endif %}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
+  <table class="form">
+    <tr>
+      <th><label for="debtor_id">From</label></th>
+      <td>
+        <select name="debtor_id">
+          {% for user in users %}
+            <option value="{{ user.id }}"{% if Some(user.id) == transfer.debtor_id.clone().take().as_ref() %} selected{% endif %}>{{ user.name.as_ref().unwrap_or(user.username) }}</option>
+          {% endfor %}
+        </select>
+    </tr>
+    <tr>
+      <th><label for="creditor_id">To</label></th>
+      <td>
+        <select name="creditor_id">
+          {% for user in users %}
+            <option value="{{ user.id }}"{% if Some(user.id) == transfer.creditor_id.clone().take().as_ref() %} selected{% endif %}>{{ user.name.as_ref().unwrap_or(user.username) }}</option>
+          {% endfor %}
+        </select>
+        </td>
+    </tr>
+    <tr>
+      <th><label for="amount">Amount</label></th>
+      <td>
+        <input type="text" id="amount" name="amount" value="{{ transfer.amount.clone().take().unwrap_or(0.into()).amount() }}" class="currency" size="8" onkeyup="calcSplit();" />
+      </td>
+    </tr>
+    <tr>
+      <th><label for="date">Date</label></th>
+      <td>
+        <input type="text" name="date" value="{% if let Some(v) = transfer.date.clone().take().flatten() %}{{ v.format("%m/%d/%Y") }}{% endif %}" class="datepicker" size="16" />
+      </td>
+    <tr>
+      <th><label for="description">Description</label></th>
+      <td>
+        <input type="text" name="description" value="{{ transfer.description.clone().take().flatten().unwrap_or_default() }}" size="64" />
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <input type="submit" value="Submit" />
+      </td>
+    </tr>
+  </table>
+</form>
+{% endblock %}

@@ -21,6 +21,7 @@ impl<'v> rocket::form::FromFormField<'v> for DateField {
         chrono::NaiveDate::parse_from_str(field.value, "%m/%d/%Y").map(|v| Self(v)).map_err(|e| rocket::form::Error::validation(format!("failed to parse date: {:?}", e)).into())
     }
 }
+
 #[derive(FromForm, Clone, PartialEq, Eq)]
 pub struct ExpenditureForm {
     pub spender_id: i32,
@@ -29,6 +30,15 @@ pub struct ExpenditureForm {
     pub date: DateField,
     #[field(validate=nonzero_splits())]
     pub splits: HashMap<i32, Currency>,
+}
+
+#[derive(FromForm, Clone, PartialEq, Eq)]
+pub struct TransferForm {
+    pub debtor_id: i32,
+    pub creditor_id: i32,
+    pub amount: Currency,
+    pub description: String,
+    pub date: DateField,
 }
 
 pub struct Mutation;
@@ -120,5 +130,30 @@ impl Mutation {
             })
         })
         .await
+    }
+    pub async fn create_transfer(db: &DbConn, form_data: TransferForm) -> Result<transfer::Model, DbErr> {
+        transfer::ActiveModel {
+            debtor_id: Set(form_data.debtor_id),
+            creditor_id: Set(form_data.creditor_id),
+            amount: Set(form_data.amount.clone()),
+            description: Set(Some(form_data.description)),
+            date: Set(Some(form_data.date.0)),
+            ..Default::default()
+        }
+            .insert(db)
+            .await
+    }
+    pub async fn update_transfer(db: &DbConn, id: i32, form_data: TransferForm) -> Result<transfer::Model, DbErr> {
+        transfer::ActiveModel {
+            id: Unchanged(id),
+            debtor_id: Set(form_data.debtor_id),
+            creditor_id: Set(form_data.creditor_id),
+            amount: Set(form_data.amount.clone()),
+            description: Set(Some(form_data.description)),
+            date: Set(Some(form_data.date.0)),
+            ..Default::default()
+        }
+            .update(db)
+            .await
     }
 }

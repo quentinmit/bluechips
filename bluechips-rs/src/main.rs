@@ -16,7 +16,7 @@ use sea_orm::Database;
 mod entities;
 
 mod service;
-use service::{Query, Mutation, ExpenditureDisplay, TransferDisplay, SettleError, Totals, ExpenditureForm};
+use service::{Query, Mutation, ExpenditureDisplay, TransferDisplay, SettleError, Totals, ExpenditureForm, TransferForm};
 
 mod auth;
 use auth::SessionManager;
@@ -242,15 +242,115 @@ async fn spend_delete_post(
     }
 }
 
+#[derive(Template)] // this will generate the code...
+#[template(path = "transfer/index.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+struct TransferTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+    authenticity_token: String,
+    users: Vec<entities::user::Model>,
+    transfer: entities::transfer::ActiveModel,
+}
+
 #[get("/transfer")]
-fn transfer_index() -> Option<()> {
-    None
+async fn transfer_index<'a>(
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    user: auth::User,
+    csrf_token: CsrfToken
+) -> Result<TransferTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let users = Query::find_users(db).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(TransferTemplate {
+        title: Some("Add a New Transfer"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        users,
+        transfer: entities::transfer::ActiveModel {
+            debtor_id: ActiveValue::Set(user.id),
+            date: ActiveValue::Set(Some(chrono::Local::now().date_naive())),
+            ..Default::default()
+        },
+    })
 }
 
 #[get("/transfer/<id>/edit")]
-fn transfer_edit(id: i32) -> Option<()> {
-    None
+async fn transfer_edit<'a>(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    _user: auth::User,
+    csrf_token: CsrfToken
+) -> Result<TransferTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let transfer =
+        entities::transfer::Entity::find_by_id(id)
+            .one(db)
+            .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+            .ok_or(Custom(Status::NotFound, "transfer not found".to_string()))?;
+    let users = Query::find_users(db).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(TransferTemplate {
+        title: Some("Edit an Expenditure"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        users,
+        transfer: transfer.into_active_model(),
+    })
 }
+#[post("/transfer", data="<form>")]
+async fn transfer_new_post(
+    db: &State<DatabaseConnection>,
+    user: auth::User,
+    form: CsrfForm<TransferForm>,
+) -> Result<Flash<Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let debtor = Query::get_user_by_id(db, form.debtor_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "debtor not found".to_string()))?;
+    let creditor = Query::get_user_by_id(db, form.creditor_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
+    Mutation::create_transfer(db, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(Flash::success(
+        Redirect::to(uri!(status_index())),
+        format!(
+            "Transfer of {} from {} to {} created.",
+            form.amount,
+            debtor.name.unwrap_or(debtor.username),
+            creditor.name.unwrap_or(creditor.username),
+        )
+    ))
+}
+#[post("/transfer/<id>", data="<form>")]
+async fn transfer_edit_post(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    user: auth::User,
+    form: CsrfForm<TransferForm>,
+) -> Result<Flash<Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let debtor = Query::get_user_by_id(db, form.debtor_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "debtor not found".to_string()))?;
+    let creditor = Query::get_user_by_id(db, form.creditor_id).await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
+    Mutation::update_transfer(db, id, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Ok(Flash::success(
+        Redirect::to(uri!(status_index())),
+        format!(
+            "Transfer of {} from {} to {} updated.",
+            form.amount,
+            debtor.name.unwrap_or(debtor.username),
+            creditor.name.unwrap_or(creditor.username),
+        )
+    ))
+}
+
 #[get("/transfer/<id>/delete")]
 fn transfer_delete(id: i32) -> Option<()> {
     None
@@ -319,7 +419,22 @@ async fn rocket() -> _ {
         .attach(rocket_csrf::Fairing::default())
         .manage(db)
         .register("/", catchers![unauthorized])
-        .mount("/", routes![status_index, spend_index, spend_edit, spend_new_post, spend_edit_post, spend_delete, spend_delete_post, transfer_index, history_index, user_index, auth_login, auth_login_post])
+        .mount("/", routes![
+            status_index,
+            spend_index,
+            spend_edit,
+            spend_new_post,
+            spend_edit_post,
+            spend_delete,
+            spend_delete_post,
+            transfer_index,
+            transfer_edit,
+            transfer_new_post,
+            transfer_edit_post,
+            history_index,
+            user_index,
+            auth_login,
+            auth_login_post])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))
