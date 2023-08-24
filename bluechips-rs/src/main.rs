@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use entities::prelude::Currency;
-use rocket::fairing::AdHoc;
+use rocket::Either;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::status::Custom;
@@ -134,9 +134,38 @@ async fn spend_edit<'a>(
         splits,
     })
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "spend/delete.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+struct SpendDeleteTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+    authenticity_token: String,
+    expenditure: entities::expenditure::Model,
+}
 #[get("/spend/<id>/delete")]
-fn spend_delete(id: i32) -> Option<()> {
-    None
+async fn spend_delete<'a>(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    user: auth::User,
+    csrf_token: CsrfToken,
+) -> Result<SpendDeleteTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let expenditure =
+        entities::expenditure::Entity::find_by_id(id)
+            .one(db)
+            .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+            .ok_or(Custom(Status::NotFound, "expenditure not found".to_string()))?;
+    Ok(SpendDeleteTemplate{
+        title: Some("Delete an Expenditure"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        expenditure,
+    })
 }
 #[post("/spend", data="<form>")]
 async fn spend_new_post(
@@ -170,6 +199,47 @@ async fn spend_edit_post(
         Redirect::to(uri!(status_index())),
         format!("Expenditure of {} paid for by {} updated.", form.amount, spender.name.unwrap_or(spender.username))
     ))
+}
+#[derive(FromForm, Clone, PartialEq, Eq)]
+pub struct ExpenditureDeleteForm<'a> {
+    pub delete: Option<&'a str>,
+    pub cancel: Option<&'a str>,
+}
+#[post("/spend/<id>/delete", data="<form>")]
+async fn spend_delete_post(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    user: auth::User,
+    form: CsrfForm<ExpenditureDeleteForm<'_>>,
+) -> Result<Either<Flash<Redirect>, Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let expenditure =
+        entities::expenditure::Entity::find_by_id(id)
+            .one(db)
+            .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+            .ok_or(Custom(Status::NotFound, "expenditure not found".to_string()))?;
+    if form.delete.is_some() {
+        let spender = expenditure
+            .find_related(entities::user::Entity)
+            .one(db)
+            .await
+            .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+        // TODO: Make sure foreign key constraints exist on splits
+        expenditure
+            .clone()
+            .delete(db)
+            .await
+            .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+
+        Ok(Either::Left(Flash::success(
+            Redirect::to(uri!(status_index())),
+            format!("Expenditure of {} paid for by {} deleted.", expenditure.amount, spender.map(
+                |spender| spender.name.unwrap_or(spender.username)
+            ).unwrap_or("unknown".to_string()))
+        )))
+    } else {
+        Ok(Either::Right(Redirect::to(uri!(status_index()))))
+    }
 }
 
 #[get("/transfer")]
@@ -249,7 +319,7 @@ async fn rocket() -> _ {
         .attach(rocket_csrf::Fairing::default())
         .manage(db)
         .register("/", catchers![unauthorized])
-        .mount("/", routes![status_index, spend_index, spend_edit, spend_new_post, spend_edit_post, spend_delete, transfer_index, history_index, user_index, auth_login, auth_login_post])
+        .mount("/", routes![status_index, spend_index, spend_edit, spend_new_post, spend_edit_post, spend_delete, spend_delete_post, transfer_index, history_index, user_index, auth_login, auth_login_post])
         .mount("/js", FileServer::from("public/js/"))
         .mount("/css", FileServer::from("public/css/"))
         .mount("/icons", FileServer::from("public/icons/"))
