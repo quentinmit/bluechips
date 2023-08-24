@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p>Are you sure you want to delete this expenditure?</p>
+
+<form action="{{ uri!(spend_delete_post(id=self.expenditure.id)) }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
+  <table class="form">
+    <tr>
+      <th><label for="spender_id">Spender</label></th>
+      <td>{{ expenditure.spender_id }}</td>
+    </tr>
+    <tr>
+      <th><label for="amount">Amount</label></th>
+      <td>{{ expenditure.amount }}</td>
+    </tr>
+    <tr>
+      <th><label for="date">Date</label></th>
+      <td>{% if let Some(date) = expenditure.date %}{{date}}{% endif %}</td>
+    </tr>
+    <tr>
+      <th><label for="description">Description</label></th>
+      <td>{% if let Some(description) = expenditure.description %}{{description}}{% endif %}</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <input type="submit" name="delete" value="Delete" class="submitbutton" />
+        <input type="submit" name="cancel" value="Cancel" class="submitbutton" />
+      </td>
+    </tr>
+  </table>
+</form>
+{% endblock %}
