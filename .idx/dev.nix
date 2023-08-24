@@ -44,7 +44,7 @@ in {
           "cargo"
           "watch"
           "-i"
-          "database.sqlite3"
+          "database.sqlite3*"
           "-x"
           "run"
         ];
