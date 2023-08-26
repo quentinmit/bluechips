@@ -314,7 +314,7 @@ async fn transfer_new_post(
     let creditor = Query::get_user_by_id(db, form.creditor_id).await
         .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
         .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
-    Mutation::create_transfer(db, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Mutation::save_transfer(db, None, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
     Ok(Flash::success(
         Redirect::to(uri!(status_index())),
         format!(
@@ -339,7 +339,7 @@ async fn transfer_edit_post(
     let creditor = Query::get_user_by_id(db, form.creditor_id).await
         .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
         .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
-    Mutation::update_transfer(db, id, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Mutation::save_transfer(db, Some(id), form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
     Ok(Flash::success(
         Redirect::to(uri!(status_index())),
         format!(

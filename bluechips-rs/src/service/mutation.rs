@@ -131,29 +131,22 @@ impl Mutation {
         })
         .await
     }
-    pub async fn create_transfer(db: &DbConn, form_data: TransferForm) -> Result<transfer::Model, DbErr> {
-        transfer::ActiveModel {
+    pub async fn save_transfer(db: &DbConn, id: Option<i32>, form_data: TransferForm) -> Result<transfer::Model, DbErr> {
+        let mut model = transfer::ActiveModel {
             debtor_id: Set(form_data.debtor_id),
             creditor_id: Set(form_data.creditor_id),
             amount: Set(form_data.amount.clone()),
             description: Set(Some(form_data.description)),
             date: Set(Some(form_data.date.0)),
             ..Default::default()
+        };
+        match id {
+            Some(id) => {
+               model.id = Unchanged(id);
+               model.update(db)
+            }
+            None => model.insert(db),
         }
-            .insert(db)
-            .await
-    }
-    pub async fn update_transfer(db: &DbConn, id: i32, form_data: TransferForm) -> Result<transfer::Model, DbErr> {
-        transfer::ActiveModel {
-            id: Unchanged(id),
-            debtor_id: Set(form_data.debtor_id),
-            creditor_id: Set(form_data.creditor_id),
-            amount: Set(form_data.amount.clone()),
-            description: Set(Some(form_data.description)),
-            date: Set(Some(form_data.date.0)),
-            ..Default::default()
-        }
-            .update(db)
             .await
     }
 }
