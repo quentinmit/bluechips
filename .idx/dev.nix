@@ -31,6 +31,7 @@ in {
 
     extensions = [
       "rust-lang.rust-analyzer"
+      "jnoortheen.nix-ide"
       # "angular.ng-template"
     ];
 
