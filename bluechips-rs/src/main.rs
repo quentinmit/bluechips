@@ -307,27 +307,11 @@ async fn transfer_new_post(
     user: auth::User,
     form: CsrfForm<TransferForm>,
 ) -> Result<Flash<Redirect>, Custom<String>> {
-    let db = db as &DatabaseConnection;
-    let debtor = Query::get_user_by_id(db, form.debtor_id).await
-        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
-        .ok_or(Custom(Status::BadRequest, "debtor not found".to_string()))?;
-    let creditor = Query::get_user_by_id(db, form.creditor_id).await
-        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
-        .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
-    Mutation::save_transfer(db, None, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
-    Ok(Flash::success(
-        Redirect::to(uri!(status_index())),
-        format!(
-            "Transfer of {} from {} to {} created.",
-            form.amount,
-            debtor.name.unwrap_or(debtor.username),
-            creditor.name.unwrap_or(creditor.username),
-        )
-    ))
+    transfer_edit_post(None, db, user, form).await
 }
 #[post("/transfer/<id>", data="<form>")]
 async fn transfer_edit_post(
-    id: i32,
+    id: Option<i32>,
     db: &State<DatabaseConnection>,
     user: auth::User,
     form: CsrfForm<TransferForm>,
@@ -339,14 +323,18 @@ async fn transfer_edit_post(
     let creditor = Query::get_user_by_id(db, form.creditor_id).await
         .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
         .ok_or(Custom(Status::BadRequest, "creditor not found".to_string()))?;
-    Mutation::save_transfer(db, Some(id), form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+    Mutation::save_transfer(db, id, form.clone()).await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
     Ok(Flash::success(
         Redirect::to(uri!(status_index())),
         format!(
-            "Transfer of {} from {} to {} updated.",
+            "Transfer of {} from {} to {} {}.",
             form.amount,
             debtor.name.unwrap_or(debtor.username),
             creditor.name.unwrap_or(creditor.username),
+            match id {
+                Some(_) => "updated",
+                None => "created",
+            }
         )
     ))
 }
