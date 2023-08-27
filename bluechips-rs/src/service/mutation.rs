@@ -93,37 +93,24 @@ impl Mutation {
             .await?;
         Ok(())
     }
-    pub async fn create_expenditure(db: &DbConn, form_data: ExpenditureForm) -> Result<expenditure::Model, TransactionError<DbErr>> {
+    pub async fn save_expenditure(db: &DbConn, id: Option<i32>, form_data: ExpenditureForm) -> Result<expenditure::Model, TransactionError<DbErr>> {
         db.transaction::<_, expenditure::Model, DbErr>(|txn| {
             Box::pin(async move {
                 let expenditure = expenditure::ActiveModel {
+                    id: match id {
+                        Some(id) => Unchanged(id),
+                        None => NotSet,
+                    },
                     spender_id: Set(form_data.spender_id),
                     amount: Set(form_data.amount.clone()),
                     description: Set(Some(form_data.description)),
                     date: Set(Some(form_data.date.0)),
                     ..Default::default()
+                };
+                let expenditure = match id {
+                    Some(_) => expenditure.update(txn),
+                    None => expenditure.insert(txn),
                 }
-                    .insert(txn)
-                    .await?;
-                Self::set_splits(txn, expenditure.id, form_data.amount, form_data.splits).await?;
-                Ok(expenditure)
-            })
-        })
-        .await
-    }
-
-    pub async fn update_expenditure(db: &DbConn, id: i32, form_data: ExpenditureForm) -> Result<expenditure::Model, TransactionError<DbErr>> {
-        db.transaction::<_, expenditure::Model, DbErr>(|txn| {
-            Box::pin(async move {
-                let expenditure = expenditure::ActiveModel {
-                    id: Unchanged(id),
-                    spender_id: Set(form_data.spender_id),
-                    amount: Set(form_data.amount.clone()),
-                    description: Set(Some(form_data.description)),
-                    date: Set(Some(form_data.date.0)),
-                    ..Default::default()
-                }
-                    .update(txn)
                     .await?;
                 Self::set_splits(txn, expenditure.id, form_data.amount.clone(), form_data.splits).await?;
                 Ok(expenditure)
