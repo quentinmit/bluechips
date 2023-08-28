@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "_list.html" as list %}
+{% block content %}
+
+<p>Are you sure you want to delete this transfer?</p>
+
+<form action="{{ uri!(transfer_delete_post(id=self.transfer.id)) }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ authenticity_token }}" />
+  <table class="form">
+    <tr>
+      <th><label for="debtor_id">From</label></th>
+      <td>{% call list::format_username(transfer.debtor_name) %}</td>
+    </tr>
+    <tr>
+      <th><label for="creditor_id">To</label></th>
+      <td>{% call list::format_username(transfer.creditor_name) %}</td>
+    </tr>
+    <tr>
+      <th><label for="amount">Amount</label></th>
+      <td>{{ transfer.amount }}</td>
+    </tr>
+    <tr>
+      <th><label for="date">Date</label></th>
+      <td>{% if let Some(date) = transfer.date %}{{date}}{% endif %}</td>
+    </tr>
+    <tr>
+      <th><label for="description">Description</label></th>
+      <td>{% if let Some(description) = transfer.description %}{{description}}{% endif %}</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <input type="submit" name="delete" value="Delete" class="submitbutton" />
+        <input type="submit" name="cancel" value="Cancel" class="submitbutton" />
+      </td>
+    </tr>
+  </table>
+</form>
+{% endblock %}

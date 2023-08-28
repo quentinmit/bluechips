@@ -145,6 +145,15 @@ impl Query {
             .await
     }
 
+    pub async fn get_one_transfer(db: &DbConn, id: i32, user_id: i32) -> Result<Option<TransferDisplay>, DbErr> {
+        Self::annotate_transfers(
+            user_id,
+            Transfer::find_by_id(id)
+        )
+            .one(db)
+            .await
+    }
+
     pub async fn find_users(db: &DbConn) -> Result<Vec<user::Model>, DbErr> {
         User::find()
             .order_by_asc(user::Column::Id)

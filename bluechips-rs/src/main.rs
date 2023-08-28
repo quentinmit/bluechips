@@ -201,7 +201,7 @@ async fn spend_edit_post(
     ))
 }
 #[derive(FromForm, Clone, PartialEq, Eq)]
-pub struct ExpenditureDeleteForm<'a> {
+pub struct DeleteForm<'a> {
     pub delete: Option<&'a str>,
     pub cancel: Option<&'a str>,
 }
@@ -210,7 +210,7 @@ async fn spend_delete_post(
     id: i32,
     db: &State<DatabaseConnection>,
     user: auth::User,
-    form: CsrfForm<ExpenditureDeleteForm<'_>>,
+    form: CsrfForm<DeleteForm<'_>>,
 ) -> Result<Either<Flash<Redirect>, Redirect>, Custom<String>> {
     let db = db as &DatabaseConnection;
     let expenditure =
@@ -339,9 +339,67 @@ async fn transfer_edit_post(
     ))
 }
 
+#[derive(Template)] // this will generate the code...
+#[template(path = "transfer/delete.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+struct TransferDeleteTemplate<'a> { // the name of the struct can be anything
+    title: Option<&'a str>,
+    mobile_client: bool,
+    flash: Option<FlashMessage<'a>>,
+    authenticity_token: String,
+    transfer: TransferDisplay,
+}
 #[get("/transfer/<id>/delete")]
-fn transfer_delete(id: i32) -> Option<()> {
-    None
+async fn transfer_delete<'a>(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    flash: Option<FlashMessage<'a>>,
+    user: auth::User,
+    csrf_token: CsrfToken,
+) -> Result<TransferDeleteTemplate<'a>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let transfer = Query::get_one_transfer(db, id, user.id)
+        .await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::NotFound, "transfer not found".to_string()))?;
+    Ok(TransferDeleteTemplate{
+        title: Some("Delete a Transfer"),
+        mobile_client: false,
+        flash,
+        authenticity_token: csrf_token.authenticity_token(),
+        transfer,
+    })
+}
+#[post("/transfer/<id>/delete", data="<form>")]
+async fn transfer_delete_post(
+    id: i32,
+    db: &State<DatabaseConnection>,
+    user: auth::User,
+    form: CsrfForm<DeleteForm<'_>>,
+) -> Result<Either<Flash<Redirect>, Redirect>, Custom<String>> {
+    let db = db as &DatabaseConnection;
+    let transfer = Query::get_one_transfer(db, id, user.id)
+        .await
+        .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
+        .ok_or(Custom(Status::NotFound, "transfer not found".to_string()))?;
+    if form.delete.is_some() {
+        entities::transfer::Entity::delete_by_id(transfer.id)
+            .exec(db)
+            .await
+            .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
+
+        Ok(Either::Left(Flash::success(
+            Redirect::to(uri!(status_index())),
+            format!(
+                "Transfer of {} from {} to {} deleted.",
+                transfer.amount,
+                transfer.debtor_name.unwrap_or("me".to_owned()),
+                transfer.creditor_name.unwrap_or("me".to_owned()),
+            )
+        )))
+    } else {
+        Ok(Either::Right(Redirect::to(uri!(status_index()))))
+    }
 }
 
 #[derive(Template)] // this will generate the code...
@@ -419,6 +477,8 @@ async fn rocket() -> _ {
             transfer_edit,
             transfer_new_post,
             transfer_edit_post,
+            transfer_delete,
+            transfer_delete_post,
             history_index,
             user_index,
             auth_login,
