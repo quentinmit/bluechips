@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_list.html" as list %}
 {% block content %}
 
 <p>Are you sure you want to delete this expenditure?</p>
@@ -8,7 +9,7 @@
   <table class="form">
     <tr>
       <th><label for="spender_id">Spender</label></th>
-      <td>{{ expenditure.spender_id }}</td>
+      <td>{% call list::format_username(expenditure.spender_name) %}</td>
     </tr>
     <tr>
       <th><label for="amount">Amount</label></th>

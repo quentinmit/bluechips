@@ -88,6 +88,15 @@ impl Query {
             .await
     }
 
+    pub async fn get_one_expenditure(db: &DbConn, id: i32, user_id: i32) -> Result<Option<ExpenditureDisplay>, DbErr> {
+        Self::annotate_expenditures(
+            user_id,
+            Expenditure::find_by_id(id)
+        )
+            .one(db)
+            .await
+    }
+
     fn annotate_transfers(user_id: i32, select: Select<transfer::Entity>) -> Selector<SelectModel<TransferDisplay>> {
         #[derive(DeriveIden)]
         struct Debtor;

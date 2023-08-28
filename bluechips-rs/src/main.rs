@@ -143,7 +143,7 @@ struct SpendDeleteTemplate<'a> { // the name of the struct can be anything
     mobile_client: bool,
     flash: Option<FlashMessage<'a>>,
     authenticity_token: String,
-    expenditure: entities::expenditure::Model,
+    expenditure: ExpenditureDisplay,
 }
 #[get("/spend/<id>/delete")]
 async fn spend_delete<'a>(
@@ -154,9 +154,7 @@ async fn spend_delete<'a>(
     csrf_token: CsrfToken,
 ) -> Result<SpendDeleteTemplate<'a>, Custom<String>> {
     let db = db as &DatabaseConnection;
-    let expenditure =
-        entities::expenditure::Entity::find_by_id(id)
-            .one(db)
+    let expenditure = Query::get_one_expenditure(db, id, user.id)
             .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
             .ok_or(Custom(Status::NotFound, "expenditure not found".to_string()))?;
     Ok(SpendDeleteTemplate{
