@@ -212,28 +212,23 @@ async fn spend_delete_post(
 ) -> Result<Either<Flash<Redirect>, Redirect>, Custom<String>> {
     let db = db as &DatabaseConnection;
     let expenditure =
-        entities::expenditure::Entity::find_by_id(id)
-            .one(db)
+        Query::get_one_expenditure(db, id, user.id)
             .await.map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?
             .ok_or(Custom(Status::NotFound, "expenditure not found".to_string()))?;
     if form.delete.is_some() {
-        let spender = expenditure
-            .find_related(entities::user::Entity)
-            .one(db)
-            .await
-            .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
         // TODO: Make sure foreign key constraints exist on splits
-        expenditure
-            .clone()
-            .delete(db)
+        entities::expenditure::Entity::delete_by_id(expenditure.id)
+            .exec(db)
             .await
             .map_err(|e| Custom(Status::InternalServerError, format!("{:?}", e)))?;
 
         Ok(Either::Left(Flash::success(
             Redirect::to(uri!(status_index())),
-            format!("Expenditure of {} paid for by {} deleted.", expenditure.amount, spender.map(
-                |spender| spender.name.unwrap_or(spender.username)
-            ).unwrap_or("unknown".to_string()))
+            format!(
+                "Expenditure of {} paid for by {} deleted.",
+                expenditure.amount,
+                expenditure.spender_name.unwrap_or("me".to_owned()),
+            )
         )))
     } else {
         Ok(Either::Right(Redirect::to(uri!(status_index()))))
