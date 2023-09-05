@@ -311,7 +311,7 @@ impl Query {
         };
         query
             .join(JoinType::LeftJoin, expenditure::Relation::Split.def().on_condition(move |_, right| {Expr::col((right, split::Column::UserId)).eq(user_id).into_condition()}))
-            .column_as(expenditure::Column::Amount.sum(), "total")
+            .column_as(Expr::expr(expenditure::Column::Amount.sum()).if_null(0), "total")
             .column_as(Expr::expr(split::Column::Share.sum()).if_null(0), "mine")
             .into_tuple::<(Currency, Currency)>()
             .one(db)
