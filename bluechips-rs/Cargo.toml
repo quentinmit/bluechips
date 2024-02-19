@@ -15,7 +15,7 @@ derive_more = "0.99.17"
 log = "0.4.19"
 password-auth = "0.3.0"
 rand = "0.8.5"
-rocket = { version = "0.5.0", features = ["secrets"] }
+rocket = { version = "0.6.0-dev", features = ["secrets"] }
 rocket_csrf = "0.3.0"
 rocket_dyn_templates = { version = "0.1.0-rc.3", features = ["tera"] }
 rusty-money = "0.4.1"
@@ -29,7 +29,8 @@ serde_json = "1.0.104"
 thiserror = "1.0.44"
 
 [patch.crates-io]
-# Not on crates.io for some reason?
-askama_rocket = { git = "https://github.com/djc/askama.git", rev = "0.12.0" }
-askama = { git = "https://github.com/djc/askama.git", rev = "0.12.0" }
+askama = { git = "https://github.com/quentinmit/askama.git", branch = "rocket-0.6.0" }
+askama_rocket = { git = "https://github.com/quentinmit/askama.git", branch = "rocket-0.6.0" }
 rocket_csrf = { git = "https://github.com/quentinmit/rocket_csrf", branch = "csrf-form" }
+# Rocket 0.6.0 isn't released yet
+rocket = { git = "https://github.com/rwf2/Rocket" }

@@ -132,8 +132,8 @@ checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
 name = "askama"
-version = "0.12.0"
-source = "git+https://github.com/djc/askama.git?rev=0.12.0#417cb924ae1f94d54e2eb13ebc7e9fab91b84588"
+version = "0.12.1"
+source = "git+https://github.com/quentinmit/askama.git?branch=rocket-0.6.0#adc6136bcb44ec20f3ed2d4f1ce1a2f1835e60bc"
 dependencies = [
  "askama_derive",
  "askama_escape",
@@ -144,31 +144,39 @@ dependencies = [
 
 [[package]]
 name = "askama_derive"
-version = "0.12.0"
-source = "git+https://github.com/djc/askama.git?rev=0.12.0#417cb924ae1f94d54e2eb13ebc7e9fab91b84588"
+version = "0.12.5"
+source = "git+https://github.com/quentinmit/askama.git?branch=rocket-0.6.0#adc6136bcb44ec20f3ed2d4f1ce1a2f1835e60bc"
 dependencies = [
+ "askama_parser",
  "basic-toml",
  "mime",
  "mime_guess",
- "nom",
  "proc-macro2",
  "quote",
  "serde",
- "syn 1.0.109",
+ "syn 2.0.49",
 ]
 
 [[package]]
 name = "askama_escape"
 version = "0.10.3"
-source = "git+https://github.com/djc/askama.git?rev=0.12.0#417cb924ae1f94d54e2eb13ebc7e9fab91b84588"
+source = "git+https://github.com/quentinmit/askama.git?branch=rocket-0.6.0#adc6136bcb44ec20f3ed2d4f1ce1a2f1835e60bc"
+
+[[package]]
+name = "askama_parser"
+version = "0.2.1"
+source = "git+https://github.com/quentinmit/askama.git?branch=rocket-0.6.0#adc6136bcb44ec20f3ed2d4f1ce1a2f1835e60bc"
+dependencies = [
+ "nom",
+]
 
 [[package]]
 name = "askama_rocket"
 version = "0.12.0"
-source = "git+https://github.com/djc/askama.git?rev=0.12.0#417cb924ae1f94d54e2eb13ebc7e9fab91b84588"
+source = "git+https://github.com/quentinmit/askama.git?branch=rocket-0.6.0#adc6136bcb44ec20f3ed2d4f1ce1a2f1835e60bc"
 dependencies = [
  "askama",
- "rocket",
+ "rocket 0.6.0-dev",
 ]
 
 [[package]]
@@ -383,7 +391,7 @@ dependencies = [
  "log",
  "password-auth",
  "rand 0.8.5",
- "rocket",
+ "rocket 0.6.0-dev",
  "rocket_csrf",
  "rocket_dyn_templates",
  "rusty-money",
@@ -1116,16 +1124,16 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.24"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb2c4422095b67ee78da96fbb51a4cc413b3b25883c7717ff7ca1ab31022c9c9"
+checksum = "31d030e59af851932b72ceebadf4a2b5986dba4c3b99dd2493f8273a0f151943"
 dependencies = [
  "bytes",
  "fnv",
  "futures-core",
  "futures-sink",
  "futures-util",
- "http",
+ "http 1.0.0",
  "indexmap",
  "slab",
  "tokio",
@@ -1221,14 +1229,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "http"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b32afd38673a8016f7c9ae69e5af41a58f81b1d31689040f2f1959594ce194ea"
+dependencies = [
+ "bytes",
+ "fnv",
+ "itoa",
+]
+
+[[package]]
 name = "http-body"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
 dependencies = [
  "bytes",
- "http",
+ "http 0.2.11",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http-body"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cac85db508abc24a2e48553ba12a996e87244a0395ce011e62b37158745d643"
+dependencies = [
+ "bytes",
+ "http 1.0.0",
 ]
 
 [[package]]
@@ -1262,9 +1291,8 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2",
- "http",
- "http-body",
+ "http 0.2.11",
+ "http-body 0.4.6",
  "httparse",
  "httpdate",
  "itoa",
@@ -1274,6 +1302,40 @@ dependencies = [
  "tower-service",
  "tracing",
  "want",
+]
+
+[[package]]
+name = "hyper"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb5aa53871fc917b1a9ed87b683a5d86db645e23acb32c2e0785a353e522fb75"
+dependencies = [
+ "bytes",
+ "futures-channel",
+ "futures-util",
+ "h2",
+ "http 1.0.0",
+ "http-body 1.0.0",
+ "httparse",
+ "httpdate",
+ "itoa",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
+name = "hyper-util"
+version = "0.1.2"
+source = "git+https://github.com/SergioBenitez/hyper-util.git?branch=fix-readversion#3c02f1315d7ea87ca78065a2cd20707b6a9069ee"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "http 1.0.0",
+ "http-body 1.0.0",
+ "hyper 1.1.0",
+ "pin-project-lite",
+ "socket2",
+ "tokio",
 ]
 
 [[package]]
@@ -1589,7 +1651,27 @@ dependencies = [
  "bytes",
  "encoding_rs",
  "futures-util",
- "http",
+ "http 0.2.11",
+ "httparse",
+ "log",
+ "memchr",
+ "mime",
+ "spin 0.9.8",
+ "tokio",
+ "tokio-util",
+ "version_check",
+]
+
+[[package]]
+name = "multer"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a15d522be0a9c3e46fd2632e272d178f56387bdb5c9fbb3a36c649062e9b5219"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http 1.0.0",
  "httparse",
  "log",
  "memchr",
@@ -2318,6 +2400,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ref-swap"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09c30c54dffee5b40af088d5d50aa3455c91a0127164b51f0215efc4cb28fb3c"
+
+[[package]]
 name = "regex"
 version = "1.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2416,14 +2504,55 @@ dependencies = [
  "indexmap",
  "log",
  "memchr",
- "multer",
+ "multer 2.1.0",
  "num_cpus",
  "parking_lot 0.12.1",
  "pin-project-lite",
  "rand 0.8.5",
  "ref-cast",
- "rocket_codegen",
- "rocket_http",
+ "rocket_codegen 0.5.0",
+ "rocket_http 0.5.0",
+ "serde",
+ "state",
+ "tempfile",
+ "time",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "ubyte",
+ "version_check",
+ "yansi",
+]
+
+[[package]]
+name = "rocket"
+version = "0.6.0-dev"
+source = "git+https://github.com/rwf2/Rocket#f75fb6368957e392e6ff76cbbb60fb2f59d53b28"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "binascii",
+ "bytes",
+ "cookie",
+ "either",
+ "figment",
+ "futures",
+ "http 1.0.0",
+ "hyper 1.1.0",
+ "hyper-util",
+ "indexmap",
+ "libc",
+ "log",
+ "memchr",
+ "multer 3.0.0",
+ "num_cpus",
+ "parking_lot 0.12.1",
+ "pin-project-lite",
+ "rand 0.8.5",
+ "ref-cast",
+ "ref-swap",
+ "rocket_codegen 0.6.0-dev",
+ "rocket_http 0.6.0-dev",
  "serde",
  "state",
  "tempfile",
@@ -2447,7 +2576,23 @@ dependencies = [
  "indexmap",
  "proc-macro2",
  "quote",
- "rocket_http",
+ "rocket_http 0.5.0",
+ "syn 2.0.49",
+ "unicode-xid",
+ "version_check",
+]
+
+[[package]]
+name = "rocket_codegen"
+version = "0.6.0-dev"
+source = "git+https://github.com/rwf2/Rocket#f75fb6368957e392e6ff76cbbb60fb2f59d53b28"
+dependencies = [
+ "devise",
+ "glob",
+ "indexmap",
+ "proc-macro2",
+ "quote",
+ "rocket_http 0.6.0-dev",
  "syn 2.0.49",
  "unicode-xid",
  "version_check",
@@ -2456,12 +2601,12 @@ dependencies = [
 [[package]]
 name = "rocket_csrf"
 version = "0.3.0"
-source = "git+https://github.com/quentinmit/rocket_csrf?branch=csrf-form#a867931ed73bb1c447cca493ae54ee2cd5fa3c73"
+source = "git+https://github.com/quentinmit/rocket_csrf?branch=csrf-form#17877aee910628042f9bc9272597e3a8fd89b930"
 dependencies = [
  "base64 0.13.1",
  "bcrypt",
  "rand 0.8.5",
- "rocket",
+ "rocket 0.6.0-dev",
 ]
 
 [[package]]
@@ -2472,7 +2617,7 @@ checksum = "04bfc006e547e4f72b760ab861f5943b688aed8a82c4977b5500c98f5d17dbfa"
 dependencies = [
  "normpath",
  "notify",
- "rocket",
+ "rocket 0.5.0",
  "tera",
  "walkdir",
 ]
@@ -2486,8 +2631,8 @@ dependencies = [
  "cookie",
  "either",
  "futures",
- "http",
- "hyper",
+ "http 0.2.11",
+ "hyper 0.14.28",
  "indexmap",
  "log",
  "memchr",
@@ -2501,6 +2646,26 @@ dependencies = [
  "state",
  "time",
  "tokio",
+ "uncased",
+]
+
+[[package]]
+name = "rocket_http"
+version = "0.6.0-dev"
+source = "git+https://github.com/rwf2/Rocket#f75fb6368957e392e6ff76cbbb60fb2f59d53b28"
+dependencies = [
+ "cookie",
+ "either",
+ "indexmap",
+ "memchr",
+ "pear",
+ "percent-encoding",
+ "ref-cast",
+ "serde",
+ "smallvec 1.13.1",
+ "stable-pattern",
+ "state",
+ "time",
  "uncased",
 ]
 
@@ -3366,6 +3531,7 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
+ "parking_lot 0.12.1",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
