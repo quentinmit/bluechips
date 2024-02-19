@@ -122,7 +122,7 @@ impl<'r> FromRequest<'r> for Session {
         if let Some(session) = get_session(cookies) {
             Outcome::Success(session)
         } else {
-            Outcome::Failure((Status::Unauthorized, Error::UnauthorizedError))
+            Outcome::Error((Status::Unauthorized, Error::UnauthorizedError))
         }
     }
 }
@@ -213,7 +213,7 @@ impl<'r> FromRequest<'r> for Users<'r> {
             }
         };
         match session_manager {
-            None => Outcome::Failure((Status::InternalServerError, Error::UnmanagedStateError)),
+            None => Outcome::Error((Status::InternalServerError, Error::UnmanagedStateError)),
             Some(session_manager) => Outcome::Success(Users {
                 sess: session_manager,
             })
@@ -234,7 +234,7 @@ impl<'r> FromRequest<'r> for Auth<'r> {
         let users: Users = if let Outcome::Success(users) = req.guard().await {
             users
         } else {
-            return Outcome::Failure((Status::InternalServerError, Error::UnmanagedStateError));
+            return Outcome::Error((Status::InternalServerError, Error::UnmanagedStateError));
         };
 
         Outcome::Success(Auth {
@@ -252,13 +252,13 @@ impl<'r> FromRequest<'r> for User {
         let auth: Auth = try_outcome!(request.guard().await);
         let db: &State<DatabaseConnection> = match request.guard().await {
             Outcome::Success(db) => db,
-            _ => return Outcome::Failure((Status::InternalServerError, Error::UnmanagedStateError)),
+            _ => return Outcome::Error((Status::InternalServerError, Error::UnmanagedStateError)),
         };
         let db: &DatabaseConnection = db as &DatabaseConnection;
         if let Some(user) = auth.get_user(db).await {
             Outcome::Success(user)
         } else {
-            Outcome::Failure((Status::Unauthorized, Error::UnauthorizedError))
+            Outcome::Error((Status::Unauthorized, Error::UnauthorizedError))
         }
     }
 }
@@ -271,7 +271,7 @@ impl<'r> FromRequest<'r> for Resident {
         if user.resident {
             Outcome::Success(Resident(user))
         } else {
-            Outcome::Failure((Status::Forbidden, Error::UnauthorizedError))
+            Outcome::Error((Status::Forbidden, Error::UnauthorizedError))
         }
     }
 }
