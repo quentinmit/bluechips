@@ -22,6 +22,7 @@ rocket_dyn_templates = { version = "0.1.0-rc.3", features = ["tera"] }
 rusty-money = "0.4.1"
 sea-orm = { version = "0.12.1", features = [
     "sqlx-mysql",
+    "sqlx-postgres",
     "sqlx-sqlite",
     "runtime-tokio-native-tls",
 ] }
