@@ -10,6 +10,7 @@ use rocket::response::status::Custom;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
 use rocket::fairing::AdHoc;
+use rocket::serde::Deserialize;
 use rocket_csrf::{form::CsrfForm, CsrfToken};
 use rocket::State;
 use askama::Template; // bring trait in scope
@@ -453,11 +454,26 @@ fn unauthorized() -> Redirect {
     Redirect::to(uri!(auth_login()))
 }
 
+#[derive(Deserialize)]
+#[serde(default)]
+pub struct Config {
+    db_uri: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            db_uri: "sqlite://database.sqlite3".to_string(),
+        }
+    }
+}
+
 #[launch]
 async fn rocket() -> _ {
     let figment = rocket::Config::figment()
         .join(("secret_key", Key::generate().master()));
-    let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
+    let config: Config = figment.extract().unwrap();
+    let db = Database::connect(config.db_uri).await.unwrap();
     rocket::custom(figment)
         .attach(AdHoc::config::<auth::Config>())
         .attach(rocket_csrf::Fairing::default())
