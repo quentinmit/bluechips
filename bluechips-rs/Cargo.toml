@@ -11,6 +11,7 @@ askama = { version = "0.12.0", features = ["with-rocket"] }
 askama_rocket = "0.12.0"
 chashmap = "2.2.2"
 chrono = "0.4.26"
+cookie = { version = "0.18.0", features = ["private"] }
 derive_more = "0.99.17"
 log = "0.4.19"
 password-auth = "0.3.0"

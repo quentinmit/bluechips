@@ -5,6 +5,7 @@ use entities::prelude::Currency;
 use rocket::Either;
 use rocket::fs::FileServer;
 use rocket::http::Status;
+use cookie::Key;
 use rocket::response::status::Custom;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
@@ -454,8 +455,10 @@ fn unauthorized() -> Redirect {
 
 #[launch]
 async fn rocket() -> _ {
+    let figment = rocket::Config::figment()
+        .join(("secret_key", Key::generate().master()));
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
-    rocket::build()
+    rocket::custom(figment)
         .attach(AdHoc::config::<auth::Config>())
         .attach(rocket_csrf::Fairing::default())
         .manage(db)

@@ -387,6 +387,7 @@ dependencies = [
  "askama_rocket",
  "chashmap",
  "chrono",
+ "cookie",
  "derive_more",
  "log",
  "password-auth",
