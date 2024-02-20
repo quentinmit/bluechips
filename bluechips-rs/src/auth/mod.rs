@@ -198,7 +198,7 @@ impl<'a> Auth<'a> {
 
     pub async fn get_user(&self, db: &DatabaseConnection) -> Option<User> {
         if self.config.authentik_use_headers {
-            let username = self.headers.get_one("X-authentik-user");
+            let username = self.headers.get_one("X-authentik-username");
             let email = self.headers.get_one("X-authentik-email");
             let name = self.headers.get_one("X-authentik-name");
             let groups = self.headers.get_one("X-authentik-groups");
