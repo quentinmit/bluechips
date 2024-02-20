@@ -21,7 +21,10 @@
           };
         };
 
-        buildInputs = final.lib.optionals final.stdenv.isDarwin [
+        buildInputs = [
+          final.pkg-config
+          final.openssl
+        ] ++ final.lib.optionals final.stdenv.isDarwin [
           final.darwin.apple_sdk.frameworks.SystemConfiguration
         ];
 
