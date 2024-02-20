@@ -18,7 +18,8 @@ pub enum Relation {
     #[sea_orm(
         belongs_to = "super::expenditure::Entity",
         from = "Column::ExpenditureId",
-        to = "super::expenditure::Column::Id"
+        to = "super::expenditure::Column::Id",
+        on_delete = "Cascade"
     )]
     Expenditure,
     #[sea_orm(

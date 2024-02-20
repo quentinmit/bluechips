@@ -24,7 +24,10 @@ pub enum Relation {
         to = "super::user::Column::Id"
     )]
     Spender,
-    #[sea_orm(has_many = "super::split::Entity")]
+    #[sea_orm(
+        has_many = "super::split::Entity",
+        on_delete = "Cascade"
+    )]
     Split,
 }
 
