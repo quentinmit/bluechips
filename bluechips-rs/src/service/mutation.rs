@@ -136,4 +136,23 @@ impl Mutation {
         }
             .await
     }
+    pub async fn ensure_user(db: &DbConn, mut user: user::ActiveModel) -> Result<user::Model, TransactionError<DbErr>> {
+        db.transaction::<_, user::Model, DbErr>(|txn| {
+            Box::pin(async move {
+                let existing = User::find()
+                    .filter(user::Column::Username.eq(user.username.as_ref()))
+                    .one(txn)
+                    .await?;
+                match existing {
+                    Some(existing) => {
+                        user.id = Unchanged(existing.id);
+                        user.update(txn)
+                    }
+                    None => user.insert(txn),
+                }
+                .await
+            })
+        })
+        .await
+    }
 }

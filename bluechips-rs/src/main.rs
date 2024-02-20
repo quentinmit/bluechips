@@ -8,6 +8,7 @@ use rocket::http::Status;
 use rocket::response::status::Custom;
 use rocket::response::{Flash, Redirect};
 use rocket::request::FlashMessage;
+use rocket::fairing::AdHoc;
 use rocket_csrf::{form::CsrfForm, CsrfToken};
 use rocket::State;
 use askama::Template; // bring trait in scope
@@ -455,6 +456,7 @@ fn unauthorized() -> Redirect {
 async fn rocket() -> _ {
     let db = Database::connect("sqlite://database.sqlite3").await.unwrap();
     rocket::build()
+        .attach(AdHoc::config::<auth::Config>())
         .attach(rocket_csrf::Fairing::default())
         .manage(db)
         .register("/", catchers![unauthorized])

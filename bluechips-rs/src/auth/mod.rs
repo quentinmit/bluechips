@@ -1,4 +1,4 @@
-use rocket::http::{Cookie, CookieJar, Status};
+use rocket::http::{Cookie, CookieJar, Status, HeaderMap};
 use rocket::State;
 use rocket::request::{FromRequest, Outcome, Request};
 use rocket::serde::{Serialize, Deserialize};
@@ -132,11 +132,29 @@ fn get_session(cookies: &CookieJar) -> Option<Session> {
     from_str(session.value()).ok()
 }
 
+#[derive(Deserialize)]
+#[serde(default)]
+pub struct Config {
+    authentik_use_headers: bool,
+    authentik_residents_group: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            authentik_use_headers: false,
+            authentik_residents_group: "Residents".to_string(),
+        }
+    }
+}
+
 
 pub struct Auth<'a> {
     /// `Auth` includes in its fields a [`Users`] instance. Therefore, it is not necessary to retrieve `Users` when using this guard.
     pub users: Users<'a>,
+    pub config: &'a Config,
     pub cookies: &'a CookieJar<'a>,
+    pub headers: &'a HeaderMap<'a>,
     pub session: Option<Session>,
 }
 
@@ -179,6 +197,26 @@ impl<'a> Auth<'a> {
     }
 
     pub async fn get_user(&self, db: &DatabaseConnection) -> Option<User> {
+        if self.config.authentik_use_headers {
+            let username = self.headers.get_one("X-authentik-user");
+            let email = self.headers.get_one("X-authentik-email");
+            let name = self.headers.get_one("X-authentik-name");
+            let groups = self.headers.get_one("X-authentik-groups");
+            match (username, email, name, groups) {
+                (Some(username), Some(email), Some(name), Some(groups)) => {
+                    let resident = groups.split("|").any(|g| g == self.config.authentik_residents_group);
+                    use sea_orm::ActiveValue::Set;
+                    return Mutation::ensure_user(db, crate::entities::user::ActiveModel {
+                        username: Set(username.to_string()),
+                        name: Set(Some(name.to_string())),
+                        email: Set(Some(email.to_string())),
+                        resident: Set(resident),
+                        ..Default::default()
+                    }).await.ok();
+                }
+                _ => ()
+            }
+        }
         if !self.is_auth().await {
             return None;
         }
@@ -237,10 +275,18 @@ impl<'r> FromRequest<'r> for Auth<'r> {
             return Outcome::Error((Status::InternalServerError, Error::UnmanagedStateError));
         };
 
+        let config = if let Some(config) = req.rocket().state::<Config>() {
+            config
+        } else {
+            return Outcome::Error((Status::InternalServerError, Error::UnmanagedStateError));
+        };
+
         Outcome::Success(Auth {
+            config,
             users,
             session,
             cookies: req.cookies(),
+            headers: req.headers(),
         })
     }
 }
