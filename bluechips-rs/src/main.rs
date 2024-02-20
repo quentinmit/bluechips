@@ -466,7 +466,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             db_uri: "sqlite://database.sqlite3".to_string(),
-            public_path: "public".into(),
+            public_path: option_env!("ROCKET_PUBLIC_PATH").unwrap_or("public").into(),
         }
     }
 }

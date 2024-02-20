@@ -29,6 +29,8 @@
     darwin.apple_sdk.frameworks.SystemConfiguration
   ];
 
+  env.ROCKET_PUBLIC_PATH = "${../bluechips/public}";
+
   meta = with lib; {
     description = "BlueChips - finances for people with shared expenses";
     homepage = "https://github.com/quentinmit/bluechips/";
