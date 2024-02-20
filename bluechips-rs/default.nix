@@ -20,6 +20,10 @@
     };
   };
 
+  cargoBuildFlags = [
+    "--workspace"
+  ];
+
   nativeBuildInputs = [
     pkg-config
   ];
