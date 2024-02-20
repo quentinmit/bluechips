@@ -15,13 +15,13 @@ impl MigrationTrait for Migration {
             .create_table(schema.create_table_from_entity(user::Entity))
             .await?;
         manager
+            .create_table(schema.create_table_from_entity(expenditure::Entity))
+            .await?;
+        manager
             .create_table(schema.create_table_from_entity(split::Entity))
             .await?;
         manager
             .create_table(schema.create_table_from_entity(subitem::Entity))
-            .await?;
-        manager
-            .create_table(schema.create_table_from_entity(expenditure::Entity))
             .await?;
         manager
             .create_table(schema.create_table_from_entity(transfer::Entity))
@@ -34,13 +34,13 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(transfer::Entity).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(expenditure::Entity).to_owned())
-            .await?;
-        manager
             .drop_table(Table::drop().table(subitem::Entity).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(split::Entity).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(expenditure::Entity).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(user::Entity).to_owned())
