@@ -1,5 +1,6 @@
 #[macro_use] extern crate rocket;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use entities::prelude::Currency;
 use rocket::Either;
@@ -458,12 +459,14 @@ fn unauthorized() -> Redirect {
 #[serde(default)]
 pub struct Config {
     db_uri: String,
+    public_path: PathBuf,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             db_uri: "sqlite://database.sqlite3".to_string(),
+            public_path: "public".into(),
         }
     }
 }
@@ -497,7 +500,7 @@ async fn rocket() -> _ {
             user_index,
             auth_login,
             auth_login_post])
-        .mount("/js", FileServer::from("public/js/"))
-        .mount("/css", FileServer::from("public/css/"))
-        .mount("/icons", FileServer::from("public/icons/"))
+        .mount("/js", FileServer::from(config.public_path.join("js/")))
+        .mount("/css", FileServer::from(config.public_path.join("css/")))
+        .mount("/icons", FileServer::from(config.public_path.join("icons/")))
 }
