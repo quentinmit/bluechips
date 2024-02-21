@@ -230,14 +230,15 @@ impl Query {
                 JoinType::LeftJoin,
                 transfer::Relation::Creditor.def().rev().to_subquery_one(total_credits.into_query(), TotalCredits)
             );
+        const ZERO: i32 = 0;
         trace!("debts = {:?}",
             query
                 .clone()
                 .exprs([
-                    Expr::col((TotalSplit, "total".into_identity())).if_null(0),
-                    Expr::col((TotalCredits, "total".into_identity())).if_null(0),
-                    Expr::col((TotalSpend, "total".into_identity())).if_null(0),
-                    Expr::col((TotalDebits, "total".into_identity())).if_null(0),
+                    Expr::col((TotalSplit, "total".into_identity())).if_null(ZERO),
+                    Expr::col((TotalCredits, "total".into_identity())).if_null(ZERO),
+                    Expr::col((TotalSpend, "total".into_identity())).if_null(ZERO),
+                    Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO),
                 ])
                 .into_tuple::<(i32, Currency, Currency, Currency, Currency)>()
                 .all(db)
@@ -246,10 +247,10 @@ impl Query {
         );
         query
             .column_as(
-                Expr::col((TotalSplit, "total".into_identity())).if_null(0)
-                .add(Expr::col((TotalCredits, "total".into_identity())).if_null(0))
-                .sub(Expr::col((TotalSpend, "total".into_identity())).if_null(0))
-                .sub(Expr::col((TotalDebits, "total".into_identity())).if_null(0)),
+                Expr::col((TotalSplit, "total".into_identity())).if_null(ZERO)
+                .add(Expr::col((TotalCredits, "total".into_identity())).if_null(ZERO))
+                .sub(Expr::col((TotalSpend, "total".into_identity())).if_null(ZERO))
+                .sub(Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO)),
                 "amount"
             )
             .into_tuple()
