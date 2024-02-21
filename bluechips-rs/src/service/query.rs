@@ -232,7 +232,7 @@ impl Query {
             );
         const ZERO: i32 = 0;
         let integer = Alias::new("integer");
-        trace!("debts = {:?}",
+        info!("debts = {:?}",
             query
                 .clone()
                 .exprs([

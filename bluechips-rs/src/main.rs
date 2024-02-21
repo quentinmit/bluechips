@@ -45,6 +45,9 @@ async fn status_index<'a>(db: &State<DatabaseConnection>, flash: Option<FlashMes
     let db = db as &DatabaseConnection;
     let users: HashMap<_, _> = Query::find_users(db).await.unwrap().into_iter().map(|u| (u.id, u)).collect();
     let debts = Query::get_debts(db).await.unwrap();
+    for (user_id, debt) in &debts {
+        info!("User {:?} owes {:?}", user_id, debt);
+    }
     let settle = Query::settle(debts);
     let get_username = |id: i32| Some(id)
         .filter(|id| id != &user.id)
