@@ -72,7 +72,11 @@ impl Mutation {
         trace!("amount = {}, splits_total = {}", &amount, splits_total);
         let splits: HashMap<_, _> = splits
             .into_iter()
-            .map(|(user_id, share)| (user_id, amount.clone() * share / splits_total))
+            .map(|(user_id, share)| (
+                user_id,
+                // Round to the nearest cent.
+                i32::from(amount.clone() * share / splits_total).into()
+            ))
             .collect();
         // splits now represents the portion of the amount that each user owes, but it might not add up to the total amount.
         let difference = amount.clone() - splits.values().sum();
