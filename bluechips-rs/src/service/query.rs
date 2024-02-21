@@ -165,6 +165,7 @@ impl Query {
 
     pub async fn find_users(db: &DbConn) -> Result<Vec<user::Model>, DbErr> {
         User::find()
+            .order_by_desc(user::Column::Resident)
             .order_by_asc(user::Column::Id)
             .all(db)
             .await
