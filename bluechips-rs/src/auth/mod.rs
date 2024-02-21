@@ -16,7 +16,7 @@ use rand::random;
 pub fn rand_string(size: usize) -> String {
     (0..)
         .map(|_| random::<char>())
-        .filter(|c| c.is_ascii())
+        .filter(|c| c.is_ascii_alphanumeric())
         .map(char::from)
         .take(size)
         .collect()
