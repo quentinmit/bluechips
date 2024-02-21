@@ -3,7 +3,7 @@ use std::ops::{RangeBounds, Bound};
 
 use crate::entities::{prelude::*, *};
 use sea_orm::{prelude::*, *};
-use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition, ConditionType, TableRef, IntoIden, SelectStatement};
+use sea_orm::sea_query::{Cond, SimpleExpr, IntoCondition, ConditionType, TableRef, IntoIden, SelectStatement, Alias};
 use chrono::{Local, NaiveDate, Datelike, Duration, Months};
 
 #[derive(FromQueryResult)]
@@ -231,14 +231,15 @@ impl Query {
                 transfer::Relation::Creditor.def().rev().to_subquery_one(total_credits.into_query(), TotalCredits)
             );
         const ZERO: i32 = 0;
+        let integer = Alias::new("integer");
         trace!("debts = {:?}",
             query
                 .clone()
                 .exprs([
-                    Expr::col((TotalSplit, "total".into_identity())).if_null(ZERO),
-                    Expr::col((TotalCredits, "total".into_identity())).if_null(ZERO),
-                    Expr::col((TotalSpend, "total".into_identity())).if_null(ZERO),
-                    Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO),
+                    Expr::col((TotalSplit, "total".into_identity())).if_null(ZERO).cast_as(integer.clone()),
+                    Expr::col((TotalCredits, "total".into_identity())).if_null(ZERO).cast_as(integer.clone()),
+                    Expr::col((TotalSpend, "total".into_identity())).if_null(ZERO).cast_as(integer.clone()),
+                    Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO).cast_as(integer.clone()),
                 ])
                 .into_tuple::<(i32, Currency, Currency, Currency, Currency)>()
                 .all(db)
@@ -250,7 +251,7 @@ impl Query {
                 Expr::col((TotalSplit, "total".into_identity())).if_null(ZERO)
                 .add(Expr::col((TotalCredits, "total".into_identity())).if_null(ZERO))
                 .sub(Expr::col((TotalSpend, "total".into_identity())).if_null(ZERO))
-                .sub(Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO)),
+                .sub(Expr::col((TotalDebits, "total".into_identity())).if_null(ZERO)).cast_as(integer),
                 "amount"
             )
             .into_tuple()
@@ -310,10 +311,11 @@ impl Query {
             Bound::Excluded(d) => query.filter(expenditure::Column::Date.lt(*d)),
             Bound::Unbounded => query,
         };
+        let integer = Alias::new("integer");
         query
             .join(JoinType::LeftJoin, expenditure::Relation::Split.def().on_condition(move |_, right| {Expr::col((right, split::Column::UserId)).eq(user_id).into_condition()}))
-            .column_as(Expr::expr(expenditure::Column::Amount.sum()).if_null(0), "total")
-            .column_as(Expr::expr(split::Column::Share.sum()).if_null(0), "mine")
+            .column_as(Expr::expr(expenditure::Column::Amount.sum()).if_null(0).cast_as(integer.clone()), "total")
+            .column_as(Expr::expr(split::Column::Share.sum()).if_null(0).cast_as(integer.clone()), "mine")
             .into_tuple::<(Currency, Currency)>()
             .one(db)
             .await
