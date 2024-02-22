@@ -35,9 +35,9 @@
 
   <p>Change how an expenditure is split up. Enter a percentage, or something like a percentage, for each user. They don't have to add to 100.</p>
 
-  <table class="form">
+  <table id="splits" class="form hide-others">
     {% for user in users %}
-      <tr>
+      <tr class="{% if !user.resident %}non-resident{% endif %}">
         <th><label for="splits[{{user.id}}]">{{user.name.as_ref().unwrap_or(user.username)}}</label></th>
         <td>
           <input
@@ -46,6 +46,7 @@
             name="splits[{{user.id}}]"
             value="{% if let Some(split) = splits.get(user.id) %}{{split.share.clone().take().unwrap_or(0.into()).amount() }}{% endif %}"
             class="share-text"
+            placeholder=" "
             onchange="calcSplit();"
             onkeyup="calcSplit();"
           />
@@ -55,6 +56,9 @@
         </td>
       </tr>
     {% endfor %}
+    <tr class="hideshow">
+      <th colspan="3"><a href="#" onclick="$('#splits').toggleClass('hide-others'); return false"><span class="hideshow">non-residents</span></a></th>
+    </tr>
     <tr>
       <td colspan="2">
         <input type="submit" value="Submit" class="submitbutton" />

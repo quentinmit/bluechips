@@ -148,3 +148,17 @@ span.see-all {
     font-weight: bold;
     border-bottom: 1px solid #bbb;
 }
+
+#splits.hide-others .non-resident:has(input:placeholder-shown) {
+    visibility: collapse;
+}
+
+tr.hideshow th {
+    text-align: left;
+}
+#splits span.hideshow::before {
+    content: '▲hide ';
+}
+#splits.hide-others span.hideshow::before {
+    content: '▼show ';
+}
