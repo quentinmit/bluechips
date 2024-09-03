@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use entities::prelude::Currency;
-use rocket::Either;
+use rocket::either::Either;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use cookie::Key;
@@ -503,7 +503,7 @@ async fn rocket() -> _ {
             user_index,
             auth_login,
             auth_login_post])
-        .mount("/js", FileServer::from(config.public_path.join("js/")))
-        .mount("/css", FileServer::from(config.public_path.join("css/")))
-        .mount("/icons", FileServer::from(config.public_path.join("icons/")))
+        .mount("/js", FileServer::new(config.public_path.join("js/")))
+        .mount("/css", FileServer::new(config.public_path.join("css/")))
+        .mount("/icons", FileServer::new(config.public_path.join("icons/")))
 }

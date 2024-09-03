@@ -14,9 +14,9 @@
     lockFile = ./Cargo.lock;
     outputHashes = {
       "askama-0.12.1" = "sha256-tjkjf/2vSZQ2ljQakhsWFkGhJN/32JmRPbEUE96ROWU=";
-      "hyper-util-0.1.2" = "sha256-x1H4keSXHtU7TRv+cUx+g3K0gX0vj/B/rwM0fGYVN74=";
-      "rocket-0.6.0-dev" = "sha256-+wbjyKjZK7IlShIBU6TBqdhrGEL246RWZU9aoKYlFUo=";
+      "rocket-0.6.0-dev" = "sha256-DweqUNz2JWMCDynqwO3CE9J6yi4lzdlzGhaNx/tlJ6M=";
       "rocket_csrf-0.3.0" = "sha256-MiQ2/a5z3bBrZzw7CpUBEPf9PZTWsSWMsNngNTpBEOQ=";
+      "s2n-quic-h3-0.1.0" = "sha256-E5LSzRoN5aVc7CnPokYsny0QXQIzlu49zQ3INBmYX1E=";
     };
   };
 
