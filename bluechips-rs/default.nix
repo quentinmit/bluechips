@@ -19,14 +19,6 @@
       "s2n-quic-h3-0.1.0" = "sha256-E5LSzRoN5aVc7CnPokYsny0QXQIzlu49zQ3INBmYX1E=";
     };
   };
-  # Workaround for https://github.com/NixOS/nixpkgs/pull/300532
-  cargoDepsHook = ''
-    fixRocket() {
-      echo cargoDepsCopy=$cargoDepsCopy
-      sed -i '/workspace/d' $cargoDepsCopy/rocket*-0.6.0-dev/Cargo.toml
-    }
-    prePatchHooks+=(fixRocket)
-  '';
 
   cargoBuildFlags = [
     "--workspace"
@@ -37,7 +29,7 @@
   ];
   buildInputs = [
     openssl
-  ] ++ lib.optionals stdenv.isDarwin [
+  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
     darwin.apple_sdk.frameworks.SystemConfiguration
   ];
 
