@@ -3,6 +3,7 @@
 , rustPlatform
 , pkg-config
 , openssl
+, sqlite
 , darwin
 }: rustPlatform.buildRustPackage rec {
   pname = "bluechips-rs";
@@ -29,6 +30,7 @@
   ];
   buildInputs = [
     openssl
+    sqlite
   ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
     darwin.apple_sdk.frameworks.SystemConfiguration
   ];
